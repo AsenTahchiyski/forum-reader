@@ -138,11 +138,22 @@ export class MobiquoClient {
     };
   }
 
-  async getTopics(forumId: string, start: number, end: number): Promise<Topic[]> {
+  async getTopics(
+    forumId: string,
+    start: number,
+    end: number
+  ): Promise<{ topics: Topic[]; total: number }> {
     const raw = await this.call('get_topic', [forumId, start, end]);
-    // Some installs return { topics: [...] }, others return the array directly.
-    const list = Array.isArray(raw) ? raw : asArray(asStruct(raw).topics);
-    return list.map((t) => this.mapTopic(asStruct(t)));
+    // Some installs return { total_topic_num, topics: [...] }, others return
+    // the topic array directly (then the total is unknown → 0).
+    if (Array.isArray(raw)) {
+      return { topics: raw.map((t) => this.mapTopic(asStruct(t))), total: 0 };
+    }
+    const s = asStruct(raw);
+    return {
+      topics: asArray(s.topics).map((t) => this.mapTopic(asStruct(t))),
+      total: pickInt(s, ['total_topic_num', 'total_topic_count', 'total'])
+    };
   }
 
   private mapTopic(s: Struct): Topic {
@@ -158,7 +169,8 @@ export class MobiquoClient {
       isSticky: pickBool(s, ['is_sticky', 'sticky']),
       isLocked: pickBool(s, ['is_closed', 'closed', 'is_locked']),
       hasNew: pickBool(s, ['new_post', 'has_new']),
-      shortContent: pickStr(s, ['short_content']) || undefined
+      shortContent: pickStr(s, ['short_content']) || undefined,
+      unreadPosition: pickInt(s, ['position', 'unread_position']) || undefined
     };
   }
 

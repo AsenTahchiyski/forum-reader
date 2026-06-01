@@ -43,6 +43,8 @@ export interface Topic {
   isLocked: boolean;
   hasNew: boolean;
   shortContent?: string;
+  /** 1-based index of the first unread post, when the plugin reports it. */
+  unreadPosition?: number;
 }
 
 export interface Post {
