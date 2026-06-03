@@ -144,6 +144,13 @@ export class MobiquoClient {
     end: number
   ): Promise<{ topics: Topic[]; total: number }> {
     const raw = await this.call('get_topic', [forumId, start, end]);
+    // TEMP DIAGNOSTIC: dump the raw topic structs so we can identify the
+    // actual sticky/pinned field name for this plugin version.
+    {
+      const arr = Array.isArray(raw) ? raw : asArray(asStruct(raw).topics);
+      // eslint-disable-next-line no-console
+      console.log('[diag] raw topics:', JSON.stringify(arr.slice(0, 8), null, 2));
+    }
     // Some installs return { total_topic_num, topics: [...] }, others return
     // the topic array directly (then the total is unknown → 0).
     if (Array.isArray(raw)) {

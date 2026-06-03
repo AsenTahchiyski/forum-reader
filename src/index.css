@@ -82,6 +82,11 @@ textarea {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Pagination docked just above the tab bar. */
+.pager-dock {
+  bottom: calc(env(safe-area-inset-bottom) + 76px);
+}
+
 .glass {
   background-color: rgb(var(--surface-2) / 0.82);
   backdrop-filter: saturate(140%) blur(14px);
@@ -117,6 +122,22 @@ textarea {
   border-left: 3px solid rgb(var(--accent) / 0.7);
   background: rgb(var(--accent) / 0.07);
   border-radius: 0 8px 8px 0;
+  color: rgb(var(--ink-dim));
+}
+.post-content .spoiler {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px dashed rgb(var(--line));
+  border-radius: 10px;
+  background: rgb(var(--ink) / 0.03);
+}
+.post-content .spoiler-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: rgb(var(--ink-dim));
 }
 .post-content pre,

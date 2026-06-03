@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
@@ -41,6 +41,14 @@ export function Thread() {
     return 0;
   });
 
+  // The 1-based number of the first unread post, if the plugin told us. We
+  // land on it directly (scrolling past the read posts that share its page)
+  // once that page's posts have loaded, then clear it so later page changes
+  // jump to the top as usual.
+  const pendingUnread = useRef<number | null>(
+    st.unreadPosition && st.unreadPosition > 0 ? st.unreadPosition : null
+  );
+
   const [replyOpen, setReplyOpen] = useState(false);
   const [body, setBody] = useState('');
   const [posting, setPosting] = useState(false);
@@ -65,8 +73,21 @@ export function Thread() {
     if (data && page > pageCount - 1) setPage(pageCount - 1);
   }, [data, page, pageCount]);
 
-  // Scroll to the top of the thread whenever the page changes.
+  // Once the landing page's posts are in, jump to the first unread post
+  // instead of the top of the page (which would show already-read replies).
   useEffect(() => {
+    if (!data || pendingUnread.current == null) return;
+    const target = pendingUnread.current;
+    pendingUnread.current = null;
+    const el = document.getElementById(`post-${target}`);
+    if (el) el.scrollIntoView({ block: 'start' });
+    else window.scrollTo({ top: 0 });
+  }, [data]);
+
+  // Scroll to the top of the thread on a manual page change. Skipped while an
+  // unread landing is pending so it doesn't fight the scroll-into-view above.
+  useEffect(() => {
+    if (pendingUnread.current != null) return;
     window.scrollTo({ top: 0 });
   }, [page]);
 
@@ -107,15 +128,14 @@ export function Thread() {
 
       {data && (
         <div className="mx-auto max-w-2xl p-4">
-          <Pager page={page} pageCount={pageCount} onChange={changePage} disabled={loading} />
-
-          <div className="space-y-3 mt-3">
+          <div className="space-y-3">
             {posts.map((post, i) => {
               const number = page * PAGE_SIZE + i + 1;
               return (
                 <article
                   key={post.id || i}
-                  className="rounded-2xl border border-line bg-surface-2 overflow-hidden"
+                  id={`post-${number}`}
+                  className="scroll-mt-16 rounded-2xl border border-line bg-surface-2 overflow-hidden"
                 >
                   <header className="flex items-center gap-2.5 p-3 border-b border-line">
                     <Avatar name={post.author} src={post.authorAvatar} size={34} />
@@ -138,10 +158,6 @@ export function Thread() {
           {error && posts.length > 0 && (
             <p className="text-center text-sm text-[rgb(255,107,107)] mt-3">{error}</p>
           )}
-
-          <div className="mt-4">
-            <Pager page={page} pageCount={pageCount} onChange={changePage} disabled={loading} />
-          </div>
 
           {/* Reply composer */}
           {data.canReply && (
@@ -171,6 +187,10 @@ export function Thread() {
               )}
             </div>
           )}
+
+          {/* Clear space behind the docked pager so the composer stays visible. */}
+          {pageCount > 1 && <div aria-hidden className="h-14" />}
+          <Pager dock page={page} pageCount={pageCount} onChange={changePage} disabled={loading} />
         </div>
       )}
     </div>

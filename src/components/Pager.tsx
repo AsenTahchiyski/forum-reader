@@ -10,10 +10,12 @@ interface Props {
   pageCount: number;
   onChange: (page: number) => void;
   disabled?: boolean;
+  /** Pin to the bottom of the viewport (above the tab bar) instead of inline. */
+  dock?: boolean;
 }
 
 /** First / Prev / "X of Y" (tap to jump) / Next / Last page navigation. */
-export function Pager({ page, pageCount, onChange, disabled }: Props) {
+export function Pager({ page, pageCount, onChange, disabled, dock }: Props) {
   const [jumpOpen, setJumpOpen] = useState(false);
   const [value, setValue] = useState('');
 
@@ -30,8 +32,8 @@ export function Pager({ page, pageCount, onChange, disabled }: Props) {
     setValue('');
   };
 
-  return (
-    <div className="flex items-center justify-center gap-1.5 py-1">
+  const controls = (
+    <div className="flex items-center justify-center gap-1.5">
       <PagerBtn label="First page" onClick={() => go(0)} disabled={disabled || atStart}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 18l-6-6 6-6M19 18l-6-6 6-6" /></svg>
       </PagerBtn>
@@ -56,8 +58,11 @@ export function Pager({ page, pageCount, onChange, disabled }: Props) {
       <PagerBtn label="Last page" onClick={() => go(pageCount - 1)} disabled={disabled || atEnd}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 18l6-6-6-6M5 18l6-6-6-6" /></svg>
       </PagerBtn>
+    </div>
+  );
 
-      <Modal open={jumpOpen} onClose={() => setJumpOpen(false)} title="Jump to page">
+  const jumpModal = (
+    <Modal open={jumpOpen} onClose={() => setJumpOpen(false)} title="Jump to page">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -83,7 +88,28 @@ export function Pager({ page, pageCount, onChange, disabled }: Props) {
             </Button>
           </div>
         </form>
-      </Modal>
+    </Modal>
+  );
+
+  if (dock) {
+    return (
+      <>
+        <div className="pager-dock fixed inset-x-0 z-20 px-3 pointer-events-none">
+          <div className="mx-auto max-w-2xl pointer-events-auto">
+            <div className="glass border border-line rounded-2xl px-2 py-1.5 shadow-[0_-2px_30px_-10px_rgb(0_0_0/0.2)]">
+              {controls}
+            </div>
+          </div>
+        </div>
+        {jumpModal}
+      </>
+    );
+  }
+
+  return (
+    <div className="py-1">
+      {controls}
+      {jumpModal}
     </div>
   );
 }

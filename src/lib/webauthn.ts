@@ -70,11 +70,20 @@ export async function registerPrfCredential(
   })) as PublicKeyCredential | null;
 
   if (!cred) return null;
+  const credentialId = toB64Url(new Uint8Array(cred.rawId));
   const ext = cred.getClientExtensionResults() as PrfExtensionOutput;
-  const prfOutput = ext.prf?.results?.first;
-  if (!prfOutput) return null;
 
-  return { credentialId: toB64Url(new Uint8Array(cred.rawId)), prfOutput };
+  // Some platforms evaluate PRF during registration and hand back the value
+  // here; many others (notably Chrome) only report `enabled` at create() time
+  // and require a follow-up assertion to actually produce the secret. Support
+  // both: use the create() result if present, otherwise evaluate it via get().
+  let prfOutput = ext.prf?.results?.first;
+  if (!prfOutput) {
+    if (!ext.prf?.enabled) return null; // PRF genuinely unsupported here
+    prfOutput = await getPrfOutput(credentialId, prfSalt);
+  }
+
+  return { credentialId, prfOutput };
 }
 
 /** Re-derive the PRF output for an existing credential (prompts biometrics). */

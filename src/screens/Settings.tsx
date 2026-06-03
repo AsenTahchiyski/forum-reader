@@ -63,6 +63,13 @@ export function Settings() {
 
   if (!settings || !forums) return <LoadingScreen />;
 
+  // TEMP DIAGNOSTIC: is the stored forum `name` actually the username?
+  // eslint-disable-next-line no-console
+  console.log(
+    '[diag] forums:',
+    forums.map((f) => ({ id: f.id, name: f.name, username: f.username, baseUrl: f.baseUrl }))
+  );
+
   const saveRelay = async () => {
     await updateSettings({
       proxyBaseUrl: proxyUrl.trim().replace(/\/+$/, ''),

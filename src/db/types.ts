@@ -59,6 +59,20 @@ export interface ForumSecrets {
 }
 
 /**
+ * Caches the live data-encryption key so a page reload doesn't force a
+ * re-unlock. The CryptoKey is held by IndexedDB (structured clone), but only
+ * usable while `sessionId` still matches the value in sessionStorage — which
+ * is cleared when the tab/PWA is closed. So the cache survives reloads but a
+ * genuine cold start finds no match and re-prompts. Cleared on lock/reset and
+ * whenever a cold start invalidates it.
+ */
+export interface SessionCache {
+  id: 'dek';
+  sessionId: string;
+  key: CryptoKey;
+}
+
+/**
  * Singleton vault record. The data-encryption key (DEK) is generated once,
  * then wrapped by a key derived either from a WebAuthn PRF output (biometric)
  * or a passphrase (PBKDF2). The DEK itself is never stored unwrapped.

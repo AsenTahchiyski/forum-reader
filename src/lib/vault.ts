@@ -5,7 +5,15 @@
  * is cleared on lock. Persisted state (the wrapped DEK + salts) lives in the
  * `vault` Dexie table; forum secrets are AES-GCM blobs on each forum row.
  */
-import { clearVault, db, getVault, putVault } from '../db/db';
+import {
+  clearSessionCache,
+  clearVault,
+  db,
+  getSessionCache,
+  getVault,
+  putSessionCache,
+  putVault
+} from '../db/db';
 import type { EncBlob, ForumSecrets, UnlockMethod } from '../db/types';
 import {
   decryptJson,
@@ -39,7 +47,66 @@ export function isUnlocked(): boolean {
 
 export function lock(): void {
   dek = null;
+  void forgetSession();
   emit();
+}
+
+// ---- Reload persistence ---------------------------------------------------
+//
+// Keep the unlocked key alive across page reloads (but not a fresh app launch)
+// by caching it in IndexedDB behind a sessionStorage marker. sessionStorage is
+// per-tab and cleared when the tab/PWA closes, so it cleanly separates "reload"
+// from "cold start" without ever writing the key into sessionStorage itself.
+
+const SESSION_KEY = 'fr_session';
+
+/** Persist the live DEK so the next reload in this tab can pick it back up. */
+async function cacheSession(): Promise<void> {
+  if (!dek) return;
+  try {
+    const sessionId = toB64(randomBytes(16));
+    sessionStorage.setItem(SESSION_KEY, sessionId);
+    await putSessionCache({ id: 'dek', sessionId, key: dek });
+  } catch {
+    // sessionStorage / IndexedDB may be unavailable (private mode, etc.).
+    // Unlocking still works; the user just re-unlocks after a reload.
+  }
+}
+
+/** Drop the cached key and its marker. */
+async function forgetSession(): Promise<void> {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+  try {
+    await clearSessionCache();
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Attempt to restore the DEK after a reload. Returns true if the vault is now
+ * unlocked. On a cold start (no matching sessionStorage marker) the stale key
+ * is purged so it never lingers at rest, and the caller shows the unlock UI.
+ */
+export async function restoreSession(): Promise<boolean> {
+  if (dek) return true;
+  try {
+    const sessionId = sessionStorage.getItem(SESSION_KEY);
+    const row = await getSessionCache();
+    if (sessionId && row && row.sessionId === sessionId) {
+      dek = row.key;
+      emit();
+      return true;
+    }
+  } catch {
+    /* fall through to purge */
+  }
+  await forgetSession();
+  return false;
 }
 
 export async function hasVault(): Promise<boolean> {
@@ -81,6 +148,7 @@ export async function setupWithBiometric(): Promise<void> {
     createdAt: Date.now()
   });
   dek = freshDek;
+  await cacheSession();
   emit();
 }
 
@@ -98,6 +166,7 @@ export async function setupWithPassphrase(passphrase: string): Promise<void> {
     createdAt: Date.now()
   });
   dek = freshDek;
+  await cacheSession();
   emit();
 }
 
@@ -125,6 +194,7 @@ export async function unlockWithBiometric(): Promise<void> {
   const prfOutput = await getPrfOutput(v.credentialId, fromB64(v.prfSalt));
   const wrappingKey = await deriveKeyFromPrf(prfOutput, fromB64(v.salt));
   dek = await unwrapDek(v.wrappedDek, wrappingKey);
+  await cacheSession();
   emit();
 }
 
@@ -149,6 +219,7 @@ export async function unlockWithPassphrase(passphrase: string): Promise<void> {
     if (err instanceof Error && err.message.includes('No passphrase')) throw err;
     throw new Error('Incorrect passphrase.');
   }
+  await cacheSession();
   emit();
 }
 

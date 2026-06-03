@@ -1,10 +1,11 @@
 import Dexie, { type Table } from 'dexie';
-import type { ForumAccount, Settings, VaultRecord } from './types';
+import type { ForumAccount, SessionCache, Settings, VaultRecord } from './types';
 
 class ForumDB extends Dexie {
   settings!: Table<Settings, 'default'>;
   forums!: Table<ForumAccount, number>;
   vault!: Table<VaultRecord, 'default'>;
+  session!: Table<SessionCache, 'dek'>;
 
   constructor() {
     super('forum-reader');
@@ -12,6 +13,12 @@ class ForumDB extends Dexie {
       settings: 'id',
       forums: '++id, name, createdAt',
       vault: 'id'
+    });
+    this.version(2).stores({
+      settings: 'id',
+      forums: '++id, name, createdAt',
+      vault: 'id',
+      session: 'id'
     });
   }
 }
@@ -77,6 +84,20 @@ export async function deleteForum(id: number): Promise<void> {
   if (settings?.favoriteForumId === id) {
     await updateSettings({ favoriteForumId: null });
   }
+}
+
+// ---- Session key cache ----------------------------------------------------
+
+export async function getSessionCache(): Promise<SessionCache | undefined> {
+  return db.session.get('dek');
+}
+
+export async function putSessionCache(record: SessionCache): Promise<void> {
+  await db.session.put(record);
+}
+
+export async function clearSessionCache(): Promise<void> {
+  await db.session.delete('dek');
 }
 
 // ---- Vault ----------------------------------------------------------------
