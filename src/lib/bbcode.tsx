@@ -115,11 +115,16 @@ function quoteAuthor(attr: string): string {
   return '';
 }
 
-function bbcodeToHtml(input: string): string {
+function bbcodeToHtml(input: string, escape = true): string {
   // Mixed content often carries real <br> line breaks. Normalize them to
   // newlines before escaping so they survive as breaks (see trailing
   // \n → <br /> step) instead of being escaped into literal text.
-  let s = escapeHtml(input.replace(/<br\s*\/?>/gi, '\n'));
+  //
+  // `escape` is disabled for mixed BBCode+HTML content: escaping there would
+  // turn genuine <b>/<i>/… tags into literal &lt;b&gt; text. We skip it and
+  // rely on the DOMPurify pass in buildHtml to neutralize anything unsafe.
+  const normalized = input.replace(/<br\s*\/?>/gi, '\n');
+  let s = escape ? escapeHtml(normalized) : normalized;
 
   // Block / inline tags.
   s = s
@@ -191,7 +196,7 @@ function embedYouTube(html: string): string {
 
 function buildHtml(raw: string, showMedia: boolean): string {
   let html = hasBBCode(raw) && !looksLikeHtml(raw) ? bbcodeToHtml(raw) : raw;
-  if (hasBBCode(raw) && looksLikeHtml(raw)) html = bbcodeToHtml(raw); // mixed → normalize
+  if (hasBBCode(raw) && looksLikeHtml(raw)) html = bbcodeToHtml(raw, false); // mixed → normalize, keep real HTML tags
 
   html = embedYouTube(html);
   html = replaceSmilies(html);
