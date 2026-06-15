@@ -65,6 +65,8 @@ export interface Thread {
   posts: Post[];
   totalPosts: number;
   canReply: boolean;
+  /** 1-based position of the first unread post, when the plugin reports it. */
+  firstUnread?: number;
 }
 
 export interface PmBox {

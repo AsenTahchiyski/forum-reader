@@ -41,13 +41,15 @@ export function Thread() {
     return 0;
   });
 
-  // The 1-based number of the first unread post, if the plugin told us. We
-  // land on it directly (scrolling past the read posts that share its page)
-  // once that page's posts have loaded, then clear it so later page changes
-  // jump to the top as usual.
-  const pendingUnread = useRef<number | null>(
+  // The 1-based number of the first unread post. The topic list rarely carries
+  // it (regular forum browsing omits it), so we also accept it from the thread
+  // response once loaded. We land on its page and scroll to it — leaving the
+  // read posts that share its page scrollable above — then mark `landed` so
+  // later page changes jump to the top as usual.
+  const unreadPos = useRef<number | null>(
     st.unreadPosition && st.unreadPosition > 0 ? st.unreadPosition : null
   );
+  const landed = useRef(false);
 
   const [replyOpen, setReplyOpen] = useState(false);
   const [body, setBody] = useState('');
@@ -73,21 +75,32 @@ export function Thread() {
     if (data && page > pageCount - 1) setPage(pageCount - 1);
   }, [data, page, pageCount]);
 
-  // Once the landing page's posts are in, jump to the first unread post
-  // instead of the top of the page (which would show already-read replies).
+  // Resolve where to land and scroll to the first unread post. Our initial
+  // page is only a guess, so once a page loads we (a) adopt the unread position
+  // from the thread response if the list never gave us one, (b) jump to the
+  // page that actually holds it, then (c) scroll to that post — once.
   useEffect(() => {
-    if (!data || pendingUnread.current == null) return;
-    const target = pendingUnread.current;
-    pendingUnread.current = null;
-    const el = document.getElementById(`post-${target}`);
+    if (!data || landed.current) return;
+    if (unreadPos.current == null && st.hasNew && data.firstUnread) {
+      unreadPos.current = data.firstUnread;
+    }
+    const pos = unreadPos.current;
+    if (pos == null) return;
+
+    const targetPage = Math.floor((pos - 1) / PAGE_SIZE);
+    if (targetPage !== page) {
+      setPage(targetPage); // wrong page guessed — refetch the right one
+      return;
+    }
+    landed.current = true;
+    const el = document.getElementById(`post-${pos}`);
     if (el) el.scrollIntoView({ block: 'start' });
-    else window.scrollTo({ top: 0 });
-  }, [data]);
+  }, [data, page, st.hasNew]);
 
   // Scroll to the top of the thread on a manual page change. Skipped while an
-  // unread landing is pending so it doesn't fight the scroll-into-view above.
+  // unread landing is still pending so it doesn't fight the scroll above.
   useEffect(() => {
-    if (pendingUnread.current != null) return;
+    if (unreadPos.current != null && !landed.current) return;
     window.scrollTo({ top: 0 });
   }, [page]);
 

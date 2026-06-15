@@ -188,12 +188,24 @@ export class MobiquoClient {
   ): Promise<Thread> {
     // Last param requests pre-rendered HTML content where supported.
     const s = asStruct(await this.call('get_thread', [topicId, start, end, true]));
+    // TEMP DIAGNOSTIC: dump the thread's scalar meta fields so we can confirm
+    // which key carries the first-unread position for this plugin version.
+    {
+      const meta = Object.fromEntries(
+        Object.entries(s).filter(([, v]) => v === null || typeof v !== 'object')
+      );
+      // eslint-disable-next-line no-console
+      console.log('[diag] thread meta:', JSON.stringify(meta));
+    }
     return {
       topicId,
       forumId: pickStr(s, ['forum_id']) || undefined,
       title: pickStr(s, ['topic_title', 'title']),
       totalPosts: pickInt(s, ['total_post_num', 'total_post_count']),
       canReply: pickBool(s, ['can_reply'], true),
+      firstUnread:
+        pickInt(s, ['position', 'unread_position', 'first_unread', 'first_unread_post']) ||
+        undefined,
       posts: asArray(s.posts).map((p) => this.mapPost(asStruct(p)))
     };
   }
