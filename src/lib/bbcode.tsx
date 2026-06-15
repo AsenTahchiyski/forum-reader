@@ -115,6 +115,30 @@ function quoteAuthor(attr: string): string {
   return '';
 }
 
+/**
+ * Resolve [quote] tags, including nested ones, into <blockquote>s. A single
+ * regex pass can't handle nesting: a non-greedy match stops at the first
+ * [/quote] (the inner one), mismatching the outer pair. Instead we repeatedly
+ * rewrite the *innermost* quotes — those whose body contains no further
+ * [quote]/[/quote] — until none remain, so each pass works outward by one
+ * level.
+ */
+function expandQuotes(s: string): string {
+  // Body must not contain a nested quote open/close, so this only matches the
+  // innermost quotes on each pass.
+  const INNER = /\[quote(?:[=\s]([^\]]*))?\]((?:(?!\[\/?quote)[\s\S])*?)\[\/quote\]/gi;
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(INNER, (_m, attr, body) => {
+      const who = quoteAuthor(attr || '');
+      const cite = who ? `<cite>${who} wrote:</cite>` : '';
+      return `<blockquote>${cite}${body}</blockquote>`;
+    });
+  } while (s !== prev);
+  return s;
+}
+
 function bbcodeToHtml(input: string, escape = true): string {
   // Mixed content often carries real <br> line breaks. Normalize them to
   // newlines before escaping so they survive as breaks (see trailing
@@ -132,17 +156,14 @@ function bbcodeToHtml(input: string, escape = true): string {
     .replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<i>$1</i>')
     .replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '<u>$1</u>')
     .replace(/\[s\]([\s\S]*?)\[\/s\]/gi, '<s>$1</s>')
-    .replace(/\[code\]([\s\S]*?)\[\/code\]/gi, '<pre><code>$1</code></pre>')
-    .replace(
-      // Accept [quote], [quote=Author] and [quote name="…" time=… …] alike:
-      // anything after `quote` up to the closing ] is treated as attributes.
-      /\[quote(?:[=\s]([^\]]*))?\]([\s\S]*?)\[\/quote\]/gi,
-      (_m, attr, body) => {
-        const who = quoteAuthor(attr || '');
-        const cite = who ? `<cite>${who} wrote:</cite>` : '';
-        return `<blockquote>${cite}${body}</blockquote>`;
-      }
-    )
+    .replace(/\[code\]([\s\S]*?)\[\/code\]/gi, '<pre><code>$1</code></pre>');
+
+  // Accept [quote], [quote=Author] and [quote name="…" time=… …] alike:
+  // anything after `quote` up to the closing ] is treated as attributes.
+  // Handled separately so nested quotes resolve correctly (see expandQuotes).
+  s = expandQuotes(s);
+
+  s = s
     // [hide] / [hide=10] / [hidethanks] etc.: content the forum gates behind a
     // reply. The API already handed us the body, so reveal it in a labeled box
     // rather than leaving the raw tags in the text.
