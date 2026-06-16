@@ -91,8 +91,38 @@ export function Thread() {
       return;
     }
     landed.current = true;
+
     const el = document.getElementById(`post-${pos}`);
-    if (el) el.scrollIntoView({ block: 'start' });
+    if (!el) return;
+
+    // Post content (avatars, embedded images) lays out after this paint and
+    // shifts everything above the target, so a single synchronous scroll lands
+    // short. Scroll after the next frame, then again as each not-yet-sized image
+    // above resolves, so the target stays put while the page settles.
+    const scroll = () => el.scrollIntoView({ block: 'start' });
+    const raf = requestAnimationFrame(scroll);
+
+    // Only images above the target shift it downward; watching just those avoids
+    // snapping the user back if they scroll past the target while images further
+    // down are still loading.
+    const imgs = Array.from(document.querySelectorAll<HTMLImageElement>('img'));
+    const pending = imgs.filter(
+      (img) =>
+        !img.complete &&
+        el.compareDocumentPosition(img) & Node.DOCUMENT_POSITION_PRECEDING
+    );
+    pending.forEach((img) => {
+      img.addEventListener('load', scroll, { once: true });
+      img.addEventListener('error', scroll, { once: true });
+    });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      pending.forEach((img) => {
+        img.removeEventListener('load', scroll);
+        img.removeEventListener('error', scroll);
+      });
+    };
   }, [data, page]);
 
   // Scroll to the top of the thread on a manual page change. Skipped while an
