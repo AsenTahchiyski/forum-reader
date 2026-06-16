@@ -19,24 +19,38 @@ export function parseForumDate(s?: string): Date | null {
   return Number.isNaN(t) ? null : new Date(t);
 }
 
-const MIN = 60_000;
-const HOUR = 60 * MIN;
-const DAY = 24 * HOUR;
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
-/** Compact relative time, falling back to the raw string if unparseable. */
+/** Absolute date like "16 Jun 2026 @ 23:17". */
+function formatStamp(d: Date): string {
+  const day = d.getDate();
+  const month = MONTHS[d.getMonth()];
+  const year = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${day} ${month} ${year} @ ${hh}:${mm}`;
+}
+
+/** Absolute timestamp, falling back to the raw string if unparseable. */
 export function formatWhen(s?: string): string {
   const d = parseForumDate(s);
-  if (!d) return s || '';
-  const diff = Date.now() - d.getTime();
-  if (diff < 0) return d.toLocaleDateString();
-  if (diff < MIN) return 'just now';
-  if (diff < HOUR) return `${Math.floor(diff / MIN)}m ago`;
-  if (diff < DAY) return `${Math.floor(diff / HOUR)}h ago`;
-  if (diff < 7 * DAY) return `${Math.floor(diff / DAY)}d ago`;
-  return d.toLocaleDateString();
+  return d ? formatStamp(d) : s || '';
 }
 
 export function formatFull(s?: string): string {
   const d = parseForumDate(s);
-  return d ? d.toLocaleString() : s || '';
+  return d ? formatStamp(d) : s || '';
 }
