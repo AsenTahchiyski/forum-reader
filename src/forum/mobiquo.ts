@@ -177,7 +177,11 @@ export class MobiquoClient {
       isLocked: pickBool(s, ['is_closed', 'closed', 'is_locked']),
       hasNew: pickBool(s, ['new_post', 'has_new']),
       shortContent: pickStr(s, ['short_content']) || undefined,
-      unreadPosition: pickInt(s, ['position', 'unread_position']) || undefined
+      unreadPosition: pickInt(s, ['position', 'unread_position']) || undefined,
+      // TEMP DEBUG: keep only scalar fields so the on-screen dump stays readable.
+      raw: Object.fromEntries(
+        Object.entries(s).filter(([, v]) => v === null || typeof v !== 'object')
+      )
     };
   }
 
@@ -188,15 +192,11 @@ export class MobiquoClient {
   ): Promise<Thread> {
     // Last param requests pre-rendered HTML content where supported.
     const s = asStruct(await this.call('get_thread', [topicId, start, end, true]));
-    // TEMP DIAGNOSTIC: dump the thread's scalar meta fields so we can confirm
-    // which key carries the first-unread position for this plugin version.
-    {
-      const meta = Object.fromEntries(
-        Object.entries(s).filter(([, v]) => v === null || typeof v !== 'object')
-      );
-      // eslint-disable-next-line no-console
-      console.log('[diag] thread meta:', JSON.stringify(meta));
-    }
+    // TEMP DEBUG: keep the thread's scalar meta fields so we can locate which
+    // key carries the first-unread position for this plugin version.
+    const debugMeta = Object.fromEntries(
+      Object.entries(s).filter(([, v]) => v === null || typeof v !== 'object')
+    );
     return {
       topicId,
       forumId: pickStr(s, ['forum_id']) || undefined,
@@ -206,7 +206,8 @@ export class MobiquoClient {
       firstUnread:
         pickInt(s, ['position', 'unread_position', 'first_unread', 'first_unread_post']) ||
         undefined,
-      posts: asArray(s.posts).map((p) => this.mapPost(asStruct(p)))
+      posts: asArray(s.posts).map((p) => this.mapPost(asStruct(p))),
+      debugMeta
     };
   }
 

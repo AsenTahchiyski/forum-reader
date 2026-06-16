@@ -45,6 +45,8 @@ export interface Topic {
   shortContent?: string;
   /** 1-based index of the first unread post, when the plugin reports it. */
   unreadPosition?: number;
+  /** TEMP DEBUG: raw mobiquo struct, for locating the unread-position field. */
+  raw?: Record<string, unknown>;
 }
 
 export interface Post {
@@ -67,6 +69,8 @@ export interface Thread {
   canReply: boolean;
   /** 1-based position of the first unread post, when the plugin reports it. */
   firstUnread?: number;
+  /** TEMP DEBUG: scalar fields from the get_thread response. */
+  debugMeta?: Record<string, unknown>;
 }
 
 export interface PmBox {

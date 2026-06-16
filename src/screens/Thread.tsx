@@ -20,6 +20,7 @@ interface NavState {
   hasNew?: boolean;
   replyCount?: number;
   unreadPosition?: number;
+  topicRaw?: Record<string, unknown>; // TEMP DEBUG
 }
 
 export function Thread() {
@@ -81,9 +82,9 @@ export function Thread() {
   // page that actually holds it, then (c) scroll to that post — once.
   useEffect(() => {
     if (!data || landed.current) return;
-    if (unreadPos.current == null && st.hasNew && data.firstUnread) {
-      unreadPos.current = data.firstUnread;
-    }
+    // TEMP: don't adopt data.firstUnread — that field is wrong on this plugin
+    // (it lands on post #1). We're collecting the real field name on-screen
+    // first. Until then, only honor a position the topic list explicitly gave.
     const pos = unreadPos.current;
     if (pos == null) return;
 
@@ -141,6 +142,23 @@ export function Thread() {
 
       {data && (
         <div className="mx-auto max-w-2xl p-4">
+          {/* TEMP DEBUG: raw fields to locate the first-unread position. */}
+          <pre className="mb-3 overflow-x-auto whitespace-pre-wrap break-words rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[11px] leading-snug text-amber-200">
+            {JSON.stringify(
+              {
+                nav: {
+                  hasNew: st.hasNew,
+                  replyCount: st.replyCount,
+                  unreadPosition: st.unreadPosition
+                },
+                topicRaw: st.topicRaw,
+                threadMeta: data.debugMeta,
+                landedOnPage: page
+              },
+              null,
+              2
+            )}
+          </pre>
           <div className="space-y-3">
             {posts.map((post, i) => {
               const number = page * PAGE_SIZE + i + 1;
