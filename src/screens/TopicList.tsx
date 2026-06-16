@@ -123,8 +123,7 @@ export function TopicList() {
                         title: t.title,
                         hasNew: t.hasNew,
                         replyCount: t.replyCount,
-                        unreadPosition: t.unreadPosition,
-                        topicRaw: t.raw // TEMP DEBUG
+                        unreadPosition: t.unreadPosition
                       }
                     })
                   }

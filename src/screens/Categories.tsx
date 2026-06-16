@@ -46,6 +46,19 @@ export function Categories() {
       {loading && !data && <LoadingScreen label="Loading forums…" />}
       {data && (
         <div className="mx-auto max-w-2xl p-4 space-y-5">
+          <button
+            onClick={() => navigate(`/f/${forumId}/new`)}
+            className="w-full flex items-center gap-3 rounded-2xl border border-accent/40 bg-[rgb(var(--accent)/0.08)] p-3 text-left hover:border-accent/70 transition-colors"
+          >
+            <span className="h-9 w-9 grid place-items-center rounded-xl bg-accent text-accent-contrast shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">New posts</span>
+              <span className="block text-xs text-ink-dim">Topics with unread replies</span>
+            </span>
+            <svg className="text-ink-dim shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
           {data.map((node) => (
             <NodeGroup key={node.id} node={node} onOpen={openNode} />
           ))}

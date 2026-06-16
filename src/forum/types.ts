@@ -34,6 +34,8 @@ export interface ForumNode {
 export interface Topic {
   id: string;
   title: string;
+  /** Containing sub-forum name, when the source carries it (e.g. unread feed). */
+  forumName?: string;
   author: string;
   authorId?: string;
   replyCount: number;
@@ -45,8 +47,6 @@ export interface Topic {
   shortContent?: string;
   /** 1-based index of the first unread post, when the plugin reports it. */
   unreadPosition?: number;
-  /** TEMP DEBUG: raw mobiquo struct, for locating the unread-position field. */
-  raw?: Record<string, unknown>;
 }
 
 export interface Post {
@@ -67,10 +67,6 @@ export interface Thread {
   posts: Post[];
   totalPosts: number;
   canReply: boolean;
-  /** 1-based position of the first unread post, when the plugin reports it. */
-  firstUnread?: number;
-  /** TEMP DEBUG: scalar fields from the get_thread response. */
-  debugMeta?: Record<string, unknown>;
 }
 
 export interface PmBox {

@@ -144,13 +144,6 @@ export class MobiquoClient {
     end: number
   ): Promise<{ topics: Topic[]; total: number }> {
     const raw = await this.call('get_topic', [forumId, start, end]);
-    // TEMP DIAGNOSTIC: dump the raw topic structs so we can identify the
-    // actual sticky/pinned field name for this plugin version.
-    {
-      const arr = Array.isArray(raw) ? raw : asArray(asStruct(raw).topics);
-      // eslint-disable-next-line no-console
-      console.log('[diag] raw topics:', JSON.stringify(arr.slice(0, 8), null, 2));
-    }
     // Some installs return { total_topic_num, topics: [...] }, others return
     // the topic array directly (then the total is unknown → 0).
     if (Array.isArray(raw)) {
@@ -163,11 +156,28 @@ export class MobiquoClient {
     };
   }
 
+  async getUnreadTopics(
+    start: number,
+    end: number
+  ): Promise<{ topics: Topic[]; total: number }> {
+    const raw = await this.call('get_unread_topic', [start, end]);
+    // Like get_topic, some installs wrap the array in a struct with a count.
+    if (Array.isArray(raw)) {
+      return { topics: raw.map((t) => this.mapTopic(asStruct(t))), total: 0 };
+    }
+    const s = asStruct(raw);
+    return {
+      topics: asArray(s.topics).map((t) => this.mapTopic(asStruct(t))),
+      total: pickInt(s, ['total_unread_num', 'unread_number', 'total_topic_num'])
+    };
+  }
+
   private mapTopic(s: Struct): Topic {
     const author = pickPerson(s, ['topic_author']);
     return {
       id: pickStr(s, ['topic_id', 'id']),
       title: pickStr(s, ['topic_title', 'title']),
+      forumName: pickStr(s, ['forum_name']) || undefined,
       author: author.name || pickStr(s, ['topic_author_name', 'author_name']),
       authorId: pickStr(s, ['topic_author_id', 'author_id']) || undefined,
       replyCount: pickInt(s, ['reply_number', 'reply_count', 'replies']),
@@ -177,11 +187,10 @@ export class MobiquoClient {
       isLocked: pickBool(s, ['is_closed', 'closed', 'is_locked']),
       hasNew: pickBool(s, ['new_post', 'has_new']),
       shortContent: pickStr(s, ['short_content']) || undefined,
-      unreadPosition: pickInt(s, ['position', 'unread_position']) || undefined,
-      // TEMP DEBUG: keep only scalar fields so the on-screen dump stays readable.
-      raw: Object.fromEntries(
-        Object.entries(s).filter(([, v]) => v === null || typeof v !== 'object')
-      )
+      // Regular get_topic browsing omits this for our reference plugin; it is
+      // populated by Tapatalk's get_unread_topic ("new posts") endpoint, so we
+      // read it here for forward compatibility.
+      unreadPosition: pickInt(s, ['position', 'unread_position']) || undefined
     };
   }
 
@@ -192,22 +201,17 @@ export class MobiquoClient {
   ): Promise<Thread> {
     // Last param requests pre-rendered HTML content where supported.
     const s = asStruct(await this.call('get_thread', [topicId, start, end, true]));
-    // TEMP DEBUG: keep the thread's scalar meta fields so we can locate which
-    // key carries the first-unread position for this plugin version.
-    const debugMeta = Object.fromEntries(
-      Object.entries(s).filter(([, v]) => v === null || typeof v !== 'object')
-    );
+    // Note: get_thread's `position` field is not a reliable first-unread marker
+    // on our reference plugin (it reads back as 1 regardless of the page), so we
+    // deliberately do not surface it here. Landing uses the topic's
+    // unreadPosition (when available) or the last-page fallback instead.
     return {
       topicId,
       forumId: pickStr(s, ['forum_id']) || undefined,
       title: pickStr(s, ['topic_title', 'title']),
       totalPosts: pickInt(s, ['total_post_num', 'total_post_count']),
       canReply: pickBool(s, ['can_reply'], true),
-      firstUnread:
-        pickInt(s, ['position', 'unread_position', 'first_unread', 'first_unread_post']) ||
-        undefined,
-      posts: asArray(s.posts).map((p) => this.mapPost(asStruct(p))),
-      debugMeta
+      posts: asArray(s.posts).map((p) => this.mapPost(asStruct(p)))
     };
   }
 

@@ -20,6 +20,7 @@ import { Forums } from './screens/Forums';
 import { Lock } from './screens/Lock';
 import { MessageView } from './screens/MessageView';
 import { Messages } from './screens/Messages';
+import { NewPosts } from './screens/NewPosts';
 import { PmList } from './screens/PmList';
 import { Settings } from './screens/Settings';
 import { Thread } from './screens/Thread';
@@ -58,6 +59,7 @@ export function App() {
               <Route path="/forums" element={<Forums />} />
               <Route path="/forums/add" element={<AddForum />} />
               <Route path="/f/:forumId" element={<Categories />} />
+              <Route path="/f/:forumId/new" element={<NewPosts />} />
               <Route path="/f/:forumId/sub/:catId" element={<TopicList />} />
               <Route path="/f/:forumId/t/:topicId" element={<Thread />} />
               <Route path="/f/:forumId/pm" element={<Messages />} />

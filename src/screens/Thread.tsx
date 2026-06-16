@@ -20,7 +20,6 @@ interface NavState {
   hasNew?: boolean;
   replyCount?: number;
   unreadPosition?: number;
-  topicRaw?: Record<string, unknown>; // TEMP DEBUG
 }
 
 export function Thread() {
@@ -42,9 +41,10 @@ export function Thread() {
     return 0;
   });
 
-  // The 1-based number of the first unread post. The topic list rarely carries
-  // it (regular forum browsing omits it), so we also accept it from the thread
-  // response once loaded. We land on its page and scroll to it — leaving the
+  // The 1-based number of the first unread post, when the topic list supplied
+  // one (Tapatalk's get_unread_topic endpoint provides it; regular get_topic
+  // browsing does not, and get_thread's `position` is unreliable — see
+  // mobiquo.ts). When present we land on its page and scroll to it — leaving the
   // read posts that share its page scrollable above — then mark `landed` so
   // later page changes jump to the top as usual.
   const unreadPos = useRef<number | null>(
@@ -76,15 +76,12 @@ export function Thread() {
     if (data && page > pageCount - 1) setPage(pageCount - 1);
   }, [data, page, pageCount]);
 
-  // Resolve where to land and scroll to the first unread post. Our initial
-  // page is only a guess, so once a page loads we (a) adopt the unread position
-  // from the thread response if the list never gave us one, (b) jump to the
-  // page that actually holds it, then (c) scroll to that post — once.
+  // When we have a first-unread position, our initial page is only a guess, so
+  // once a page loads we jump to the page that actually holds that post, then
+  // scroll to it — once. With no position, the last-page fallback chosen above
+  // stands and this is a no-op.
   useEffect(() => {
     if (!data || landed.current) return;
-    // TEMP: don't adopt data.firstUnread — that field is wrong on this plugin
-    // (it lands on post #1). We're collecting the real field name on-screen
-    // first. Until then, only honor a position the topic list explicitly gave.
     const pos = unreadPos.current;
     if (pos == null) return;
 
@@ -96,7 +93,7 @@ export function Thread() {
     landed.current = true;
     const el = document.getElementById(`post-${pos}`);
     if (el) el.scrollIntoView({ block: 'start' });
-  }, [data, page, st.hasNew]);
+  }, [data, page]);
 
   // Scroll to the top of the thread on a manual page change. Skipped while an
   // unread landing is still pending so it doesn't fight the scroll above.
@@ -142,23 +139,6 @@ export function Thread() {
 
       {data && (
         <div className="mx-auto max-w-2xl p-4">
-          {/* TEMP DEBUG: raw fields to locate the first-unread position. */}
-          <pre className="mb-3 overflow-x-auto whitespace-pre-wrap break-words rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[11px] leading-snug text-amber-200">
-            {JSON.stringify(
-              {
-                nav: {
-                  hasNew: st.hasNew,
-                  replyCount: st.replyCount,
-                  unreadPosition: st.unreadPosition
-                },
-                topicRaw: st.topicRaw,
-                threadMeta: data.debugMeta,
-                landedOnPage: page
-              },
-              null,
-              2
-            )}
-          </pre>
           <div className="space-y-3">
             {posts.map((post, i) => {
               const number = page * PAGE_SIZE + i + 1;
