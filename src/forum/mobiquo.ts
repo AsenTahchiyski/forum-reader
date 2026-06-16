@@ -80,6 +80,34 @@ function pickPerson(s: Struct, keys: string[]): { name: string; avatar?: string 
 export class MobiquoClient {
   constructor(private readonly ctx: CallContext) {}
 
+  /**
+   * The forum root, derived from the mobiquo endpoint
+   * (e.g. https://x.com/forum/mobiquo/mobiquo.php -> https://x.com/forum/).
+   * Used to turn relative avatar/logo paths into absolute URLs the browser
+   * can load directly.
+   */
+  private get forumBase(): string {
+    try {
+      return new URL('..', this.ctx.mobiquoUrl).href;
+    } catch {
+      return '';
+    }
+  }
+
+  /** Absolutize a forum-supplied image URL; relative paths resolve to the
+   *  forum root, protocol-relative to https, absolute URLs pass through. */
+  private resolveUrl(raw?: string): string | undefined {
+    const u = (raw || '').trim();
+    if (!u) return undefined;
+    if (/^https?:\/\//i.test(u)) return u;
+    if (u.startsWith('//')) return `https:${u}`;
+    try {
+      return new URL(u, this.forumBase).href;
+    } catch {
+      return u;
+    }
+  }
+
   private call(method: string, params: unknown[] = []) {
     return rpc(this.ctx, method, params);
   }
@@ -132,7 +160,7 @@ export class MobiquoClient {
       isCategory: pickBool(s, ['is_category']),
       hasNew: pickBool(s, ['new_post', 'has_new']),
       isProtected: pickBool(s, ['is_protected']),
-      logoUrl: pickStr(s, ['logo_url', 'logo', 'icon_url']) || undefined,
+      logoUrl: this.resolveUrl(pickStr(s, ['logo_url', 'logo', 'icon_url'])),
       subOnly: pickBool(s, ['sub_only']),
       children: asArray(s.child).map((c) => this.mapForumNode(asStruct(c)))
     };
@@ -221,8 +249,9 @@ export class MobiquoClient {
       id: pickStr(s, ['post_id', 'id']),
       author: author.name || pickStr(s, ['post_author_name', 'author_name']),
       authorId: pickStr(s, ['post_author_id', 'author_id']) || undefined,
-      authorAvatar:
-        author.avatar || pickStr(s, ['icon_url', 'avatar_url']) || undefined,
+      authorAvatar: this.resolveUrl(
+        author.avatar || pickStr(s, ['icon_url', 'avatar_url'])
+      ),
       postTime: pickStr(s, ['post_time', 'post_date']) || undefined,
       content: pickStr(s, ['post_content', 'content', 'text_body']),
       canEdit: pickBool(s, ['can_edit'])
@@ -277,7 +306,7 @@ export class MobiquoClient {
       id: pickStr(s, ['msg_id', 'id']),
       title: pickStr(s, ['msg_title', 'subject', 'title']),
       party,
-      partyAvatar: from.avatar,
+      partyAvatar: this.resolveUrl(from.avatar),
       sentAt: pickStr(s, ['sent_date', 'msg_time']) || undefined,
       isUnread: pickBool(s, ['is_unread', 'msg_state']),
       shortContent: pickStr(s, ['short_content']) || undefined
@@ -291,7 +320,7 @@ export class MobiquoClient {
       id: pickStr(s, ['msg_id', 'id'], msgId),
       title: pickStr(s, ['msg_title', 'subject', 'title']),
       from: from.name,
-      fromAvatar: from.avatar,
+      fromAvatar: this.resolveUrl(from.avatar),
       to: asArray(s.msg_to).map((t) => pickPerson({ x: t }, ['x']).name).filter(Boolean),
       sentAt: pickStr(s, ['sent_date', 'msg_time']) || undefined,
       content: pickStr(s, ['text_body', 'message_content', 'content'])
