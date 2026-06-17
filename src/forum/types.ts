@@ -45,7 +45,10 @@ export interface Topic {
   isLocked: boolean;
   hasNew: boolean;
   shortContent?: string;
-  /** 1-based index of the first unread post, when the plugin reports it. */
+  /**
+   * Count of already-read posts (0-based index of the first unread post), when
+   * the plugin reports it. First unread post's 1-based number is this + 1.
+   */
   unreadPosition?: number;
 }
 

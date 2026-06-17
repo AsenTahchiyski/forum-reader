@@ -215,9 +215,10 @@ export class MobiquoClient {
       isLocked: pickBool(s, ['is_closed', 'closed', 'is_locked']),
       hasNew: pickBool(s, ['new_post', 'has_new']),
       shortContent: pickStr(s, ['short_content']) || undefined,
-      // Regular get_topic browsing omits this for our reference plugin; it is
-      // populated by Tapatalk's get_unread_topic ("new posts") endpoint, so we
-      // read it here for forward compatibility.
+      // Count of already-read posts (the 0-based index of the first unread
+      // post), per Tapatalk's get_unread_topic ("new posts") endpoint. Regular
+      // get_topic browsing omits it on our reference plugin. The first unread
+      // post's 1-based number is this + 1 (see Thread.tsx).
       unreadPosition: pickInt(s, ['position', 'unread_position']) || undefined
     };
   }

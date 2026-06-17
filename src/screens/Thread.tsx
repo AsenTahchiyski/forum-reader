@@ -31,25 +31,28 @@ export function Thread() {
   // Best estimate of total posts before the first response: replies + opening post.
   const estTotal = st.replyCount != null ? st.replyCount + 1 : null;
 
+  // Tapatalk's get_unread_topic reports `position` as the count of already-read
+  // posts — i.e. the 0-based index of the first unread post — so the first
+  // unread post's 1-based number is position + 1. (Treating position itself as
+  // that number lands a post too early, on the last *read* post.)
+  const firstUnread =
+    st.unreadPosition && st.unreadPosition > 0 ? st.unreadPosition + 1 : null;
+
   // Where to start: the first unread post if the plugin told us, else the last
   // page when there are new posts, else the top.
   const [page, setPage] = useState<number>(() => {
-    if (st.unreadPosition && st.unreadPosition > 0) {
-      return Math.floor((st.unreadPosition - 1) / PAGE_SIZE);
-    }
+    if (firstUnread) return Math.floor((firstUnread - 1) / PAGE_SIZE);
     if (st.hasNew && estTotal) return Math.floor((estTotal - 1) / PAGE_SIZE);
     return 0;
   });
 
-  // The 1-based number of the first unread post, when the topic list supplied
-  // one (Tapatalk's get_unread_topic endpoint provides it; regular get_topic
-  // browsing does not, and get_thread's `position` is unreliable — see
+  // The 1-based number of the first unread post, when the topic list supplied a
+  // position (Tapatalk's get_unread_topic endpoint provides it; regular
+  // get_topic browsing does not, and get_thread's `position` is unreliable — see
   // mobiquo.ts). When present we land on its page and scroll to it — leaving the
   // read posts that share its page scrollable above — then mark `landed` so
   // later page changes jump to the top as usual.
-  const unreadPos = useRef<number | null>(
-    st.unreadPosition && st.unreadPosition > 0 ? st.unreadPosition : null
-  );
+  const unreadPos = useRef<number | null>(firstUnread);
   const landed = useRef(false);
 
   const [replyOpen, setReplyOpen] = useState(false);
