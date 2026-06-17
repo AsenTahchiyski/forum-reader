@@ -212,7 +212,7 @@ export class MobiquoClient {
     start: number,
     end: number,
     searchId?: string
-  ): Promise<{ topics: Topic[]; total: number; searchId?: string; raw?: unknown }> {
+  ): Promise<{ topics: Topic[]; total: number; searchId?: string }> {
     const params: unknown[] = [b64(keywords), start, end];
     if (searchId) params.push(searchId);
     // Use `search_topic`, not `search`: the mobiquo `search` method only accepts
@@ -223,17 +223,16 @@ export class MobiquoClient {
     // Results are post hits. Depending on the plugin version they arrive either
     // as a bare array, or wrapped in a struct keyed `topics` or `posts` (with
     // the count under the matching `total_*` name) — probe both, like the other
-    // listing endpoints do. `raw` is returned for the Search page's debug panel.
+    // listing endpoints do.
     if (Array.isArray(raw)) {
-      return { topics: raw.map((t) => this.mapTopic(asStruct(t))), total: 0, raw };
+      return { topics: raw.map((t) => this.mapTopic(asStruct(t))), total: 0 };
     }
     const s = asStruct(raw);
     const hits = s.topics !== undefined ? s.topics : s.posts;
     return {
       topics: asArray(hits).map((t) => this.mapTopic(asStruct(t))),
       total: pickInt(s, ['total_topic_num', 'total_post_num', 'total', 'result_total']),
-      searchId: pickStr(s, ['search_id']) || undefined,
-      raw
+      searchId: pickStr(s, ['search_id']) || undefined
     };
   }
 

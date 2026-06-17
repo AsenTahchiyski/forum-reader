@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { ErrorBanner } from '../components/ErrorBanner';
@@ -9,47 +9,45 @@ import { getClient } from '../forum/connection';
 import { formatWhen } from '../lib/time';
 import { usePaged } from '../hooks/usePaged';
 
+// Last committed query per forum, and the Tapatalk search_id that pins each
+// (forum, query) result set. Both are module-level so they survive the Search
+// screen unmounting when a result is opened — paired with usePaged's cache,
+// going back restores the results without re-running the search.
+const lastQuery = new Map<number, string>();
+const searchIds = new Map<string, string | undefined>();
+
 export function Search() {
   const navigate = useNavigate();
   const forumId = Number(useParams().forumId);
 
   // `term` is the live input; `query` is the committed search (only changes on
-  // submit) so we don't fire a request on every keystroke.
-  const [term, setTerm] = useState('');
-  const [query, setQuery] = useState('');
+  // submit) so we don't fire a request on every keystroke. Both seed from the
+  // last search for this forum so reopening Search shows it again.
+  const [term, setTerm] = useState(() => lastQuery.get(forumId) ?? '');
+  const [query, setQuery] = useState(() => lastQuery.get(forumId) ?? '');
 
-  // Tapatalk pins a result set to a search_id; reuse it across pages, resetting
-  // whenever a fresh search starts (start === 0).
-  const searchId = useRef<string | undefined>(undefined);
-
-  // TEMP DEBUG: surface the raw search response in the page so we can inspect
-  // the real shape on device (no console access over remote control).
-  const [debug, setDebug] = useState<string>('');
+  const cacheKey = `${forumId}:${query}`;
 
   const { items, loading, error, done, loadMore, reload } = usePaged(
     async (start, end) => {
       if (!query.trim()) return [];
-      if (start === 0) searchId.current = undefined;
+      // Reset the pinned search_id when a fresh search starts (start === 0).
+      if (start === 0) searchIds.delete(cacheKey);
       const client = await getClient(forumId);
-      const res = await client.search(query, start, end, searchId.current);
-      if (res.searchId) searchId.current = res.searchId;
-      if (start === 0) {
-        setDebug(
-          JSON.stringify(
-            { params: { query, start, end, searchId: searchId.current }, raw: res.raw },
-            null,
-            2
-          )
-        );
-      }
+      const res = await client.search(query, start, end, searchIds.get(cacheKey));
+      if (res.searchId) searchIds.set(cacheKey, res.searchId);
       return res.topics;
     },
-    [forumId, query]
+    [forumId, query],
+    20,
+    cacheKey
   );
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    setQuery(term.trim());
+    const q = term.trim();
+    lastQuery.set(forumId, q);
+    setQuery(q);
   };
 
   const searched = query.trim().length > 0;
@@ -72,27 +70,6 @@ export function Search() {
             Search
           </Button>
         </form>
-
-        {/* TEMP DEBUG: raw search response. Remove once search is confirmed. */}
-        {debug && (
-          <div className="mt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-ink-dim">
-                Debug: raw search response
-              </span>
-              <button
-                type="button"
-                onClick={() => navigator.clipboard?.writeText(debug)}
-                className="text-xs text-accent underline"
-              >
-                Copy
-              </button>
-            </div>
-            <pre className="mt-1 max-h-72 overflow-auto rounded-lg border border-line bg-surface-2 p-2 text-[10px] leading-snug whitespace-pre-wrap break-all">
-              {debug}
-            </pre>
-          </div>
-        )}
 
         {error && items.length === 0 && (
           <div className="mt-4">
