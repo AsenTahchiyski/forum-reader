@@ -90,6 +90,23 @@ export interface PmSummary {
   shortContent?: string;
 }
 
+export interface UserProfile {
+  id: string;
+  username: string;
+  displayName?: string;
+  avatar?: string;
+  /** Omitted when the plugin doesn't report it (distinct from a real 0). */
+  postCount?: number;
+  registeredAt?: string;
+  lastActivityAt?: string;
+  isOnline: boolean;
+  /** Raw signature (HTML or BBCode), when present. */
+  signature?: string;
+  customFields: { name: string; value: string }[];
+  /** Whether the viewer may PM this user, when the plugin reports it. */
+  canPm?: boolean;
+}
+
 export interface PrivateMessage {
   id: string;
   title: string;

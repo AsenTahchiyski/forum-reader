@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
 import { ErrorBanner } from '../components/ErrorBanner';
@@ -10,6 +10,7 @@ import { Pager } from '../components/Pager';
 import { getClient } from '../forum/connection';
 import { PostContent, quotePost } from '../lib/bbcode';
 import { formatWhen } from '../lib/time';
+import { goToProfile } from '../lib/profile';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
 
@@ -27,6 +28,7 @@ export function Thread() {
   const accountId = Number(forumId);
   const st = (useLocation().state as NavState | null) ?? {};
   const settings = useSettings();
+  const navigate = useNavigate();
 
   // Best estimate of total posts before the first response: replies + opening post.
   const estTotal = st.replyCount != null ? st.replyCount + 1 : null;
@@ -198,9 +200,22 @@ export function Thread() {
                   className="scroll-mt-16 rounded-2xl border border-line bg-surface-2 overflow-hidden"
                 >
                   <header className="flex items-center gap-2.5 p-3 border-b border-line">
-                    <Avatar name={post.author} src={post.authorAvatar} size={34} />
+                    <button
+                      type="button"
+                      aria-label={`View ${post.author || 'member'}'s profile`}
+                      onClick={() => goToProfile(navigate, accountId, post.author, post.authorId)}
+                      className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                    >
+                      <Avatar name={post.author} src={post.authorAvatar} size={34} />
+                    </button>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{post.author || 'Member'}</p>
+                      <button
+                        type="button"
+                        onClick={() => goToProfile(navigate, accountId, post.author, post.authorId)}
+                        className="block max-w-full truncate text-sm font-medium text-left hover:text-accent transition-colors"
+                      >
+                        {post.author || 'Member'}
+                      </button>
                       {post.postTime && (
                         <p className="text-xs text-ink-dim">{formatWhen(post.postTime)}</p>
                       )}

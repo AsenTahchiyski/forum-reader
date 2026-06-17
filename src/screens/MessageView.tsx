@@ -9,6 +9,7 @@ import { LoadingScreen, Spinner } from '../components/Spinner';
 import { getClient } from '../forum/connection';
 import { PostContent } from '../lib/bbcode';
 import { formatFull } from '../lib/time';
+import { goToProfile } from '../lib/profile';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
 
@@ -60,9 +61,22 @@ export function MessageView() {
         <div className="mx-auto max-w-2xl p-4 space-y-4">
           <div className="rounded-2xl border border-line bg-surface-2 overflow-hidden">
             <header className="flex items-center gap-2.5 p-3 border-b border-line">
-              <Avatar name={data.from} src={data.fromAvatar} size={38} />
+              <button
+                type="button"
+                aria-label={`View ${data.from || 'member'}'s profile`}
+                onClick={() => goToProfile(navigate, accountId, data.from)}
+                className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              >
+                <Avatar name={data.from} src={data.fromAvatar} size={38} />
+              </button>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium truncate">{data.from || 'Member'}</p>
+                <button
+                  type="button"
+                  onClick={() => goToProfile(navigate, accountId, data.from)}
+                  className="block max-w-full truncate text-sm font-medium text-left hover:text-accent transition-colors"
+                >
+                  {data.from || 'Member'}
+                </button>
                 <p className="text-xs text-ink-dim truncate">
                   {data.to.length ? `to ${data.to.join(', ')}` : ''}
                   {data.sentAt ? ` · ${formatFull(data.sentAt)}` : ''}

@@ -17,7 +17,8 @@ import type {
   Post,
   PrivateMessage,
   Thread,
-  Topic
+  Topic,
+  UserProfile
 } from './types';
 
 // ---- struct accessors -----------------------------------------------------
@@ -200,6 +201,32 @@ export class MobiquoClient {
     };
   }
 
+  /**
+   * Full-text search. Tapatalk returns a `search_id` on the first call that
+   * pins the result set; passing it back on later pages keeps pagination
+   * stable, so callers thread it through. Results are post hits mapped onto the
+   * Topic shape (we navigate to the containing topic).
+   */
+  async search(
+    keywords: string,
+    start: number,
+    end: number,
+    searchId?: string
+  ): Promise<{ topics: Topic[]; total: number; searchId?: string }> {
+    const params: unknown[] = [b64(keywords), start, end];
+    if (searchId) params.push(searchId);
+    const raw = await this.call('search', params);
+    if (Array.isArray(raw)) {
+      return { topics: raw.map((t) => this.mapTopic(asStruct(t))), total: 0 };
+    }
+    const s = asStruct(raw);
+    return {
+      topics: asArray(s.topics).map((t) => this.mapTopic(asStruct(t))),
+      total: pickInt(s, ['total_topic_num', 'total', 'result_total']),
+      searchId: pickStr(s, ['search_id']) || undefined
+    };
+  }
+
   private mapTopic(s: Struct): Topic {
     const author = pickPerson(s, ['topic_author']);
     return {
@@ -271,6 +298,46 @@ export class MobiquoClient {
     return {
       ok: pickBool(s, ['result']),
       message: pickStr(s, ['result_text']) || undefined
+    };
+  }
+
+  // ---- users --------------------------------------------------------------
+
+  /**
+   * Look up a member's profile. Tapatalk's get_user_info keys on the username
+   * (base64); we pass the user_id too when we have it, since some plugins use
+   * it to disambiguate. Either identifier is enough on its own.
+   */
+  async getUserInfo(username: string, userId?: string): Promise<UserProfile> {
+    const params: unknown[] = [b64(username || '')];
+    if (userId) params.push(userId);
+    const s = asStruct(await this.call('get_user_info', params));
+    const hasPosts = ['post_count', 'posts'].some((k) => k in s);
+    return {
+      id: pickStr(s, ['user_id', 'userid', 'id'], userId || ''),
+      username: pickStr(s, ['username', 'user_name'], username),
+      displayName: pickStr(s, ['display_name', 'displayname']) || undefined,
+      avatar: this.resolveUrl(pickStr(s, ['icon_url', 'avatar_url', 'avatar'])),
+      postCount: hasPosts ? pickInt(s, ['post_count', 'posts']) : undefined,
+      registeredAt:
+        pickStr(s, ['register_time', 'registration_time', 'reg_time']) || undefined,
+      lastActivityAt:
+        pickStr(s, ['last_activity_time', 'last_activity', 'lastactivity']) ||
+        undefined,
+      isOnline: pickBool(s, ['is_online', 'online']),
+      signature: pickStr(s, ['signature', 'sig']) || undefined,
+      customFields: asArray(s.custom_fields_list)
+        .map((f) => {
+          const fs = asStruct(f);
+          return {
+            name: pickStr(fs, ['name', 'field_name', 'title']),
+            value: pickStr(fs, ['value', 'field_value'])
+          };
+        })
+        .filter((f) => f.name && f.value),
+      canPm: ['can_pm', 'can_send_pm', 'allow_pm'].some((k) => k in s)
+        ? pickBool(s, ['can_pm', 'can_send_pm', 'allow_pm'])
+        : undefined
     };
   }
 

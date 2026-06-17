@@ -22,6 +22,8 @@ import { MessageView } from './screens/MessageView';
 import { Messages } from './screens/Messages';
 import { NewPosts } from './screens/NewPosts';
 import { PmList } from './screens/PmList';
+import { Profile } from './screens/Profile';
+import { Search } from './screens/Search';
 import { Settings } from './screens/Settings';
 import { Thread } from './screens/Thread';
 import { TopicList } from './screens/TopicList';
@@ -60,8 +62,10 @@ export function App() {
               <Route path="/forums/add" element={<AddForum />} />
               <Route path="/f/:forumId" element={<Categories />} />
               <Route path="/f/:forumId/new" element={<NewPosts />} />
+              <Route path="/f/:forumId/search" element={<Search />} />
               <Route path="/f/:forumId/sub/:catId" element={<TopicList />} />
               <Route path="/f/:forumId/t/:topicId" element={<Thread />} />
+              <Route path="/f/:forumId/u/:userId" element={<Profile />} />
               <Route path="/f/:forumId/pm" element={<Messages />} />
               <Route path="/f/:forumId/pm/:boxId" element={<PmList />} />
               <Route path="/f/:forumId/pm/:boxId/:msgId" element={<MessageView />} />
