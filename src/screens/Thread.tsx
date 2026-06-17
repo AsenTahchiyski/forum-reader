@@ -63,6 +63,20 @@ export function Thread() {
   const [postError, setPostError] = useState<string | null>(null);
   const replyRef = useRef<HTMLTextAreaElement>(null);
 
+  // Inline post editing. `editingId` is the post being edited; `editBody` holds
+  // its raw (BBCode) draft, fetched via get_raw_post on open. `edited` overrides
+  // a post's rendered content after a successful save so we update it in place
+  // without refetching the page (and losing scroll position). `editSubject`
+  // keeps the post's title so we can send it back unchanged, as save_raw_post
+  // requires it.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [edited, setEdited] = useState<Record<string, string>>({});
+  const editSubject = useRef('');
+
   // Drop the post's text into the composer as a [quote] block, opening it if
   // needed and appending when the user is already drafting.
   const quote = (author: string, content: string) => {
@@ -156,6 +170,7 @@ export function Thread() {
   const changePage = (p: number) => {
     if (p === page) return;
     setReplyOpen(false);
+    cancelEdit();
     setPage(p);
   };
 
@@ -176,6 +191,56 @@ export function Thread() {
       setPostError(err instanceof Error ? err.message : 'Could not post.');
     } finally {
       setPosting(false);
+    }
+  };
+
+  // Open the editor for a post and pull its raw body. The reply composer and any
+  // other edit are closed first so only one editor is open at a time.
+  const startEdit = async (postId: string) => {
+    setReplyOpen(false);
+    setEditingId(postId);
+    setEditBody('');
+    setEditError(null);
+    setEditLoading(true);
+    try {
+      const client = await getClient(accountId);
+      const res = await client.getRawPost(postId);
+      if (!res.ok) throw new Error(res.error || 'This post can no longer be edited.');
+      editSubject.current = res.subject;
+      setEditBody(res.content);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Could not load the post.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditBody('');
+    setEditError(null);
+  };
+
+  const saveEdit = async (postId: string) => {
+    if (!editBody.trim()) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const client = await getClient(accountId);
+      const res = await client.saveRawPost(postId, editSubject.current, editBody);
+      if (!res.ok) throw new Error(res.message || 'The forum rejected the edit.');
+      if (res.content) {
+        // Update the rendered post in place; keeps the reader's scroll position.
+        setEdited((m) => ({ ...m, [postId]: res.content! }));
+      } else {
+        // No rendered content came back — refetch so we don't show a stale body.
+        reload();
+      }
+      cancelEdit();
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Could not save.');
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -223,17 +288,60 @@ export function Thread() {
                     <span className="text-xs text-ink-dim tabular-nums">#{number}</span>
                   </header>
                   <div className="p-3">
-                    <PostContent content={post.content} showMedia={showMedia} />
+                    {editingId === post.id ? (
+                      editLoading ? (
+                        <div className="flex justify-center py-4">
+                          <Spinner />
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <TextArea
+                            autoFocus
+                            placeholder="Edit your post…"
+                            value={editBody}
+                            onChange={(e) => setEditBody(e.target.value)}
+                          />
+                          {editError && (
+                            <p className="text-sm text-[rgb(255,107,107)]">{editError}</p>
+                          )}
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={editSaving}>
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => saveEdit(post.id)}
+                              disabled={editSaving || !editBody.trim()}
+                            >
+                              {editSaving ? <Spinner /> : 'Save'}
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    ) : (
+                      <PostContent content={edited[post.id] ?? post.content} showMedia={showMedia} />
+                    )}
                   </div>
-                  {data.canReply && (
-                    <footer className="flex justify-end px-3 pb-2">
-                      <button
-                        type="button"
-                        onClick={() => quote(post.author, post.content)}
-                        className="text-xs font-medium text-ink-dim hover:text-accent transition-colors"
-                      >
-                        Quote
-                      </button>
+                  {editingId !== post.id && (data.canReply || post.canEdit) && (
+                    <footer className="flex justify-end gap-4 px-3 pb-2">
+                      {post.canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => startEdit(post.id)}
+                          className="text-xs font-medium text-ink-dim hover:text-accent transition-colors"
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {data.canReply && (
+                        <button
+                          type="button"
+                          onClick={() => quote(post.author, edited[post.id] ?? post.content)}
+                          className="text-xs font-medium text-ink-dim hover:text-accent transition-colors"
+                        >
+                          Quote
+                        </button>
+                      )}
                     </footer>
                   )}
                 </article>

@@ -311,6 +311,46 @@ export class MobiquoClient {
     };
   }
 
+  /**
+   * Fetch a post's raw (BBCode) body for editing, via get_raw_post. On success
+   * the plugin returns the post's title and editable content (no `result` key);
+   * on failure it returns the standard `{ result: false, result_text }` struct
+   * (e.g. the edit window has passed, the post is edit-locked, or it isn't ours).
+   */
+  async getRawPost(
+    postId: string
+  ): Promise<{ ok: boolean; subject: string; content: string; error?: string }> {
+    const s = asStruct(await this.call('get_raw_post', [postId]));
+    const ok = !('result' in s) || pickBool(s, ['result']);
+    return {
+      ok,
+      subject: pickStr(s, ['post_title', 'subject', 'title']),
+      content: pickStr(s, ['post_content', 'content', 'text_body']),
+      error: ok ? undefined : pickStr(s, ['result_text'], 'This post can no longer be edited.')
+    };
+  }
+
+  /**
+   * Save an edited post via save_raw_post. The subject must be sent back even
+   * when unchanged (the plugin requires it), so pass the value from getRawPost.
+   * Returns the freshly rendered HTML so the caller can update the post in place.
+   */
+  async saveRawPost(
+    postId: string,
+    subject: string,
+    body: string
+  ): Promise<{ ok: boolean; message?: string; content?: string }> {
+    const s = asStruct(
+      await this.call('save_raw_post', [postId, b64(subject), b64(body)])
+    );
+    const ok = pickBool(s, ['result']);
+    return {
+      ok,
+      message: pickStr(s, ['result_text']) || undefined,
+      content: ok ? pickStr(s, ['post_content', 'content']) || undefined : undefined
+    };
+  }
+
   // ---- users --------------------------------------------------------------
 
   /**
