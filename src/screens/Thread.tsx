@@ -40,21 +40,23 @@ export function Thread() {
   const firstUnread =
     st.unreadPosition && st.unreadPosition > 0 ? st.unreadPosition + 1 : null;
 
-  // Where to start: the first unread post if the plugin told us, else the last
-  // page when there are new posts, else the top.
+  // Where to start: the first unread post if the plugin told us, otherwise the
+  // last page so we can land on the newest post (see landTarget below).
   const [page, setPage] = useState<number>(() => {
     if (firstUnread) return Math.floor((firstUnread - 1) / PAGE_SIZE);
-    if (st.hasNew && estTotal) return Math.floor((estTotal - 1) / PAGE_SIZE);
-    return 0;
+    if (estTotal) return Math.floor((estTotal - 1) / PAGE_SIZE);
+    return 0; // total unknown — corrected to the last page once data arrives
   });
 
-  // The 1-based number of the first unread post, when the topic list supplied a
-  // position (Tapatalk's get_unread_topic endpoint provides it; regular
-  // get_topic browsing does not, and get_thread's `position` is unreliable — see
-  // mobiquo.ts). When present we land on its page and scroll to it — leaving the
-  // read posts that share its page scrollable above — then mark `landed` so
-  // later page changes jump to the top as usual.
-  const unreadPos = useRef<number | null>(firstUnread);
+  // The post to land on and scroll to when the thread first opens: the 1-based
+  // number of the first unread post when the topic list supplied a position
+  // (Tapatalk's get_unread_topic provides it; regular get_topic browsing does
+  // not, and get_thread's `position` is unreliable — see mobiquo.ts), otherwise
+  // 'last' to resolve to the final post once the real total is known — so
+  // reopening a topic with nothing unread lands on the newest post, not the top.
+  // We land on its page and scroll to it, leaving earlier posts on that page
+  // scrollable above, then mark `landed` so later page changes jump to the top.
+  const landTarget = useRef<number | 'last'>(firstUnread ?? 'last');
   const landed = useRef(false);
 
   const [replyOpen, setReplyOpen] = useState(false);
@@ -111,14 +113,13 @@ export function Thread() {
     if (data && page > pageCount - 1) setPage(pageCount - 1);
   }, [data, page, pageCount]);
 
-  // When we have a first-unread position, our initial page is only a guess, so
-  // once a page loads we jump to the page that actually holds that post, then
-  // scroll to it — once. With no position, the last-page fallback chosen above
-  // stands and this is a no-op.
+  // Our initial page is only a guess, so once a page loads we jump to the page
+  // that actually holds the landing target, then scroll to it — once. The 'last'
+  // target resolves to the final post using the now-known total.
   useEffect(() => {
     if (!data || landed.current) return;
-    const pos = unreadPos.current;
-    if (pos == null) return;
+    const pos = landTarget.current === 'last' ? total : landTarget.current;
+    if (!pos) return;
 
     const targetPage = Math.floor((pos - 1) / PAGE_SIZE);
     if (targetPage !== page) {
@@ -158,12 +159,12 @@ export function Thread() {
         img.removeEventListener('error', scroll);
       });
     };
-  }, [data, page]);
+  }, [data, page, total]);
 
-  // Scroll to the top of the thread on a manual page change. Skipped while an
-  // unread landing is still pending so it doesn't fight the scroll above.
+  // Scroll to the top of the thread on a manual page change. Skipped while the
+  // initial landing is still pending so it doesn't fight the scroll above.
   useEffect(() => {
-    if (unreadPos.current != null && !landed.current) return;
+    if (!landed.current) return;
     window.scrollTo({ top: 0 });
   }, [page]);
 
