@@ -22,6 +22,10 @@ export function Search() {
   // whenever a fresh search starts (start === 0).
   const searchId = useRef<string | undefined>(undefined);
 
+  // TEMP DEBUG: surface the raw search response in the page so we can inspect
+  // the real shape on device (no console access over remote control).
+  const [debug, setDebug] = useState<string>('');
+
   const { items, loading, error, done, loadMore, reload } = usePaged(
     async (start, end) => {
       if (!query.trim()) return [];
@@ -29,6 +33,15 @@ export function Search() {
       const client = await getClient(forumId);
       const res = await client.search(query, start, end, searchId.current);
       if (res.searchId) searchId.current = res.searchId;
+      if (start === 0) {
+        setDebug(
+          JSON.stringify(
+            { params: { query, start, end, searchId: searchId.current }, raw: res.raw },
+            null,
+            2
+          )
+        );
+      }
       return res.topics;
     },
     [forumId, query]
@@ -59,6 +72,27 @@ export function Search() {
             Search
           </Button>
         </form>
+
+        {/* TEMP DEBUG: raw search response. Remove once search is confirmed. */}
+        {debug && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-ink-dim">
+                Debug: raw search response
+              </span>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard?.writeText(debug)}
+                className="text-xs text-accent underline"
+              >
+                Copy
+              </button>
+            </div>
+            <pre className="mt-1 max-h-72 overflow-auto rounded-lg border border-line bg-surface-2 p-2 text-[10px] leading-snug whitespace-pre-wrap break-all">
+              {debug}
+            </pre>
+          </div>
+        )}
 
         {error && items.length === 0 && (
           <div className="mt-4">

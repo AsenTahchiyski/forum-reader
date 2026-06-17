@@ -212,18 +212,24 @@ export class MobiquoClient {
     start: number,
     end: number,
     searchId?: string
-  ): Promise<{ topics: Topic[]; total: number; searchId?: string }> {
+  ): Promise<{ topics: Topic[]; total: number; searchId?: string; raw?: unknown }> {
     const params: unknown[] = [b64(keywords), start, end];
     if (searchId) params.push(searchId);
     const raw = await this.call('search', params);
+    // Results are post hits. Depending on the plugin version they arrive either
+    // as a bare array, or wrapped in a struct keyed `topics` or `posts` (with
+    // the count under the matching `total_*` name) — probe both, like the other
+    // listing endpoints do. `raw` is returned for the Search page's debug panel.
     if (Array.isArray(raw)) {
-      return { topics: raw.map((t) => this.mapTopic(asStruct(t))), total: 0 };
+      return { topics: raw.map((t) => this.mapTopic(asStruct(t))), total: 0, raw };
     }
     const s = asStruct(raw);
+    const hits = s.topics !== undefined ? s.topics : s.posts;
     return {
-      topics: asArray(s.topics).map((t) => this.mapTopic(asStruct(t))),
-      total: pickInt(s, ['total_topic_num', 'total', 'result_total']),
-      searchId: pickStr(s, ['search_id']) || undefined
+      topics: asArray(hits).map((t) => this.mapTopic(asStruct(t))),
+      total: pickInt(s, ['total_topic_num', 'total_post_num', 'total', 'result_total']),
+      searchId: pickStr(s, ['search_id']) || undefined,
+      raw
     };
   }
 
@@ -233,15 +239,15 @@ export class MobiquoClient {
       id: pickStr(s, ['topic_id', 'id']),
       title: pickStr(s, ['topic_title', 'title']),
       forumName: pickStr(s, ['forum_name']) || undefined,
-      author: author.name || pickStr(s, ['topic_author_name', 'author_name']),
-      authorId: pickStr(s, ['topic_author_id', 'author_id']) || undefined,
+      author: author.name || pickStr(s, ['topic_author_name', 'post_author_name', 'author_name']),
+      authorId: pickStr(s, ['topic_author_id', 'post_author_id', 'author_id']) || undefined,
       replyCount: pickInt(s, ['reply_number', 'reply_count', 'replies']),
       viewCount: pickInt(s, ['view_number', 'view_count', 'views']),
       lastReplyAt: pickStr(s, ['last_reply_time', 'last_reply_date']) || undefined,
       isSticky: pickBool(s, ['is_sticky', 'sticky']),
       isLocked: pickBool(s, ['is_closed', 'closed', 'is_locked']),
       hasNew: pickBool(s, ['new_post', 'has_new']),
-      shortContent: pickStr(s, ['short_content']) || undefined,
+      shortContent: pickStr(s, ['short_content', 'post_content']) || undefined,
       // Count of already-read posts (the 0-based index of the first unread
       // post), per Tapatalk's get_unread_topic ("new posts") endpoint. Regular
       // get_topic browsing omits it on our reference plugin. The first unread
