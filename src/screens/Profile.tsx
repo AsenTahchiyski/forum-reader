@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
@@ -40,6 +41,13 @@ export function Profile() {
     () => getClient(accountId).then((c) => c.getUserInfo(username, userId)),
     [accountId, username, userId]
   );
+
+  // Open at the top: we navigate here from a (possibly scrolled) thread or
+  // message, and the window keeps its prior offset. Re-pin once the profile
+  // loads and the page height settles.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [data]);
 
   const showMedia = settings?.showMedia ?? true;
   const name = data?.displayName || data?.username || username || 'Member';
@@ -88,9 +96,9 @@ export function Profile() {
           {data.customFields.length > 0 && (
             <div className="rounded-2xl border border-line bg-surface-2 divide-y divide-line">
               {data.customFields.map((f) => (
-                <div key={f.name} className="flex gap-3 p-3 text-sm">
-                  <span className="text-ink-dim shrink-0 w-28">{f.name}</span>
-                  <span className="min-w-0 flex-1 break-words">{f.value}</span>
+                <div key={f.name} className="p-3">
+                  <p className="text-xs text-ink-dim">{f.name}</p>
+                  <p className="text-sm mt-0.5 break-words">{f.value}</p>
                 </div>
               ))}
             </div>
