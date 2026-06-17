@@ -124,21 +124,37 @@ textarea {
   border-radius: 0 8px 8px 0;
   color: rgb(var(--ink-dim));
 }
-.post-content .spoiler {
+.post-content details.spoiler {
   margin: 0.5rem 0;
-  padding: 0.5rem 0.75rem;
   border: 1px dashed rgb(var(--line));
   border-radius: 10px;
   background: rgb(var(--ink) / 0.03);
+  overflow: hidden;
 }
-.post-content .spoiler-label {
-  display: block;
-  margin-bottom: 0.35rem;
+.post-content details.spoiler > summary.spoiler-label {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.4rem 0.75rem;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: rgb(var(--ink-dim));
+  user-select: none;
+}
+.post-content details.spoiler > summary.spoiler-label::-webkit-details-marker {
+  display: none;
+}
+.post-content details.spoiler > summary.spoiler-label::before {
+  content: '\25B6\00a0';
+  font-size: 0.85em;
+}
+.post-content details.spoiler[open] > summary.spoiler-label::before {
+  content: '\25BC\00a0';
+}
+.post-content details.spoiler > .spoiler-body {
+  padding: 0.5rem 0.75rem;
+  border-top: 1px dashed rgb(var(--line));
 }
 .post-content pre,
 .post-content code {

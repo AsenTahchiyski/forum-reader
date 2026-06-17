@@ -116,6 +116,33 @@ function quoteAuthor(attr: string): string {
 }
 
 /**
+ * Resolve [spoiler]/[hide…] tags into click-to-expand <details> boxes. Like
+ * quotes these can nest, so we rewrite the *innermost* boxes first (those whose
+ * body holds no further spoiler/hide open/close tag) and loop outward until
+ * none remain. [hide…] is content the forum gates behind a reply; the API
+ * already handed us the body, so we just collapse it rather than leaving the
+ * raw tags in the text. [spoiler=Title] uses its attribute as the summary.
+ */
+function expandSpoilers(s: string): string {
+  const INNER =
+    /\[(spoiler|hide(?:thanks|-thanks|-reply)?)(?:[=\s]([^\]]*))?\]((?:(?!\[\/?(?:spoiler|hide))[\s\S])*?)\[\/\1\]/gi;
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(INNER, (_m, tag, attr, body) => {
+      const label = /^spoiler$/i.test(tag)
+        ? (attr || '').replace(/^(?:&quot;|")|(?:&quot;|")$/g, '').trim() || 'Spoiler'
+        : 'Hidden content';
+      return (
+        `<details class="spoiler"><summary class="spoiler-label">${label}</summary>` +
+        `<div class="spoiler-body">${body}</div></details>`
+      );
+    });
+  } while (s !== prev);
+  return s;
+}
+
+/**
  * Resolve [quote] tags, including nested ones, into <blockquote>s. A single
  * regex pass can't handle nesting: a non-greedy match stops at the first
  * [/quote] (the inner one), mismatching the outer pair. Instead we repeatedly
@@ -163,14 +190,10 @@ function bbcodeToHtml(input: string, escape = true): string {
   // Handled separately so nested quotes resolve correctly (see expandQuotes).
   s = expandQuotes(s);
 
+  // [spoiler]/[hide…] → collapsible <details> boxes (handles nesting).
+  s = expandSpoilers(s);
+
   s = s
-    // [hide] / [hide=10] / [hidethanks] etc.: content the forum gates behind a
-    // reply. The API already handed us the body, so reveal it in a labeled box
-    // rather than leaving the raw tags in the text.
-    .replace(
-      /\[(hide(?:thanks|-thanks|-reply)?)(?:[=\s][^\]]*)?\]([\s\S]*?)\[\/\1\]/gi,
-      '<div class="spoiler"><span class="spoiler-label">Hidden content</span>$2</div>'
-    )
     .replace(/\[list[^\]]*\]([\s\S]*?)\[\/list\]/gi, '<ul>$1</ul>')
     .replace(/\[\*\]\s?/gi, '</li><li>')
     .replace(/<ul><\/li>/gi, '<ul>')
@@ -238,7 +261,8 @@ function buildHtml(raw: string, showMedia: boolean): string {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
       'a', 'b', 'i', 'u', 's', 'strong', 'em', 'br', 'p', 'span', 'div',
-      'blockquote', 'cite', 'ul', 'ol', 'li', 'pre', 'code', 'img'
+      'blockquote', 'cite', 'ul', 'ol', 'li', 'pre', 'code', 'img',
+      'details', 'summary'
     ],
     ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'class', 'data-yt', 'loading'],
     ALLOW_DATA_ATTR: false
