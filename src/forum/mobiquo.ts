@@ -215,7 +215,11 @@ export class MobiquoClient {
   ): Promise<{ topics: Topic[]; total: number; searchId?: string; raw?: unknown }> {
     const params: unknown[] = [b64(keywords), start, end];
     if (searchId) params.push(searchId);
-    const raw = await this.call('search', params);
+    // Use `search_topic`, not `search`: the mobiquo `search` method only accepts
+    // a single advanced-search struct, so our positional (base64, int, int[,
+    // search_id]) args are rejected with "Parameter Error". `search_topic`
+    // declares exactly that positional signature.
+    const raw = await this.call('search_topic', params);
     // Results are post hits. Depending on the plugin version they arrive either
     // as a bare array, or wrapped in a struct keyed `topics` or `posts` (with
     // the count under the matching `total_*` name) — probe both, like the other
