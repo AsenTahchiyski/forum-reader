@@ -38,6 +38,31 @@ const looksLikeHtml = (s: string) => /<\/?[a-z][\s\S]*>/i.test(s);
 const hasBBCode = (s: string) => /\[[a-z*][^\]]*\]/i.test(s);
 
 /**
+ * Build a BBCode [quote] block from a post for the reply composer. The stored
+ * content may be HTML or BBCode; we flatten it to plain text (dropping nested
+ * markup and quotes so replies don't carry whole quote chains) and wrap it in a
+ * single [quote=Author] the forum will re-render.
+ */
+export function quotePost(author: string, content: string): string {
+  const text = content
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|div|blockquote|li|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, '') // strip remaining HTML tags
+    .replace(/\[\/?[^\]]+\]/g, '') // strip BBCode tags (incl. nested quotes)
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0*39;|&#x0*27;|&apos;/gi, "'")
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  const who = author ? `=${author}` : '';
+  return `[quote${who}]\n${text}\n[/quote]\n\n`;
+}
+
+/**
  * phpBB-style smilie codes → Unicode emoji. The Tapatalk plugin sometimes
  * hands back the raw codes instead of rendered <img> smilies, so we convert
  * the common set ourselves. Codes are matched longest-first (see SMILIE_RE)

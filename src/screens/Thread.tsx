@@ -8,7 +8,7 @@ import { TextArea } from '../components/Field';
 import { LoadingScreen, Spinner } from '../components/Spinner';
 import { Pager } from '../components/Pager';
 import { getClient } from '../forum/connection';
-import { PostContent } from '../lib/bbcode';
+import { PostContent, quotePost } from '../lib/bbcode';
 import { formatWhen } from '../lib/time';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
@@ -59,6 +59,22 @@ export function Thread() {
   const [body, setBody] = useState('');
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+  const replyRef = useRef<HTMLTextAreaElement>(null);
+
+  // Drop the post's text into the composer as a [quote] block, opening it if
+  // needed and appending when the user is already drafting.
+  const quote = (author: string, content: string) => {
+    const block = quotePost(author, content);
+    setBody((b) => (b.trim() ? `${b.trimEnd()}\n\n${block}` : block));
+    setReplyOpen(true);
+    requestAnimationFrame(() => {
+      const el = replyRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  };
 
   const { data, loading, error, reload } = useAsync(
     async () => {
@@ -194,6 +210,17 @@ export function Thread() {
                   <div className="p-3">
                     <PostContent content={post.content} showMedia={showMedia} />
                   </div>
+                  {data.canReply && (
+                    <footer className="flex justify-end px-3 pb-2">
+                      <button
+                        type="button"
+                        onClick={() => quote(post.author, post.content)}
+                        className="text-xs font-medium text-ink-dim hover:text-accent transition-colors"
+                      >
+                        Quote
+                      </button>
+                    </footer>
+                  )}
                 </article>
               );
             })}
@@ -209,6 +236,7 @@ export function Thread() {
               {replyOpen ? (
                 <div className="rounded-2xl border border-line bg-surface-2 p-3 space-y-3">
                   <TextArea
+                    ref={replyRef}
                     autoFocus
                     placeholder="Write a reply…"
                     value={body}
