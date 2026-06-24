@@ -152,12 +152,25 @@ export function Thread() {
       img.addEventListener('error', scroll, { once: true });
     });
 
-    return () => {
-      cancelAnimationFrame(raf);
+    // Once the reader scrolls on their own — e.g. up into the history — stop
+    // chasing the target. Otherwise every late-loading image above would snap
+    // them back down, turning the read into a fight.
+    const release = () => {
       pending.forEach((img) => {
         img.removeEventListener('load', scroll);
         img.removeEventListener('error', scroll);
       });
+    };
+    window.addEventListener('wheel', release, { once: true, passive: true });
+    window.addEventListener('touchmove', release, { once: true, passive: true });
+    window.addEventListener('keydown', release, { once: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      release();
+      window.removeEventListener('wheel', release);
+      window.removeEventListener('touchmove', release);
+      window.removeEventListener('keydown', release);
     };
   }, [data, page, total]);
 
