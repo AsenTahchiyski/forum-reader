@@ -280,6 +280,21 @@ export class MobiquoClient {
     };
   }
 
+  /**
+   * The 1-based position of the first unread post, straight from the server at
+   * open time via get_thread_by_unread — the endpoint Tapatalk provides for
+   * exactly this. The topic-list `position` is only a snapshot with
+   * plugin-specific semantics, and regular get_topic browsing omits it
+   * entirely, so this is the authoritative source for unread landing. We ask
+   * for a single post and discard it — only the position matters; the Thread
+   * screen fetches its own HTML-rendered pages via get_thread. Returns 0 when
+   * the plugin doesn't report a position (callers fall back).
+   */
+  async getFirstUnread(topicId: string): Promise<number> {
+    const s = asStruct(await this.call('get_thread_by_unread', [topicId, 1]));
+    return pickInt(s, ['position', 'unread_position']);
+  }
+
   private mapPost(s: Struct): Post {
     const author = pickPerson(s, ['post_author']);
     return {

@@ -48,16 +48,42 @@ export function Thread() {
     return 0; // total unknown — corrected to the last page once data arrives
   });
 
-  // The post to land on and scroll to when the thread first opens: the 1-based
-  // number of the first unread post when the topic list supplied a position
-  // (Tapatalk's get_unread_topic provides it; regular get_topic browsing does
-  // not, and get_thread's `position` is unreliable — see mobiquo.ts), otherwise
-  // 'last' to resolve to the final post once the real total is known — so
-  // reopening a topic with nothing unread lands on the newest post, not the top.
-  // We land on its page and scroll to it, leaving earlier posts on that page
-  // scrollable above, then mark `landed` so later page changes jump to the top.
-  const landTarget = useRef<number | 'last'>(firstUnread ?? 'last');
+  // The post to land on and scroll to when the thread first opens. For a topic
+  // with new posts we ask the server for the first unread's position at open
+  // time ('unread' until that probe resolves — see the effect below); the
+  // topic-list position is only a fallback since regular get_topic browsing
+  // omits it and get_unread_topic's snapshot has plugin-specific semantics.
+  // Without new posts it's 'last', resolving to the final post once the real
+  // total is known, so reopening a read topic lands on the newest post, not the
+  // top. We land on its page and scroll to it, leaving earlier posts on that
+  // page scrollable above, then mark `landed` so later page changes jump to the
+  // top. State, not a ref: the probe resolving must re-run the landing effect.
+  const [landTarget, setLandTarget] = useState<number | 'last' | 'unread'>(
+    st.hasNew ? 'unread' : (firstUnread ?? 'last')
+  );
   const landed = useRef(false);
+
+  // Resolve the authoritative first-unread position via get_thread_by_unread,
+  // in parallel with the first page fetch. On plugins without the endpoint (or
+  // a missing position) fall back to the topic list's snapshot, then 'last'.
+  useEffect(() => {
+    if (!st.hasNew) return;
+    let cancelled = false;
+    (async () => {
+      let pos = 0;
+      try {
+        const client = await getClient(accountId);
+        pos = await client.getFirstUnread(topicId!);
+      } catch {
+        // fall back below
+      }
+      if (!cancelled) setLandTarget(pos > 0 ? pos : (firstUnread ?? 'last'));
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [replyOpen, setReplyOpen] = useState(false);
   const [body, setBody] = useState('');
@@ -115,10 +141,12 @@ export function Thread() {
 
   // Our initial page is only a guess, so once a page loads we jump to the page
   // that actually holds the landing target, then scroll to it — once. The 'last'
-  // target resolves to the final post using the now-known total.
+  // target resolves to the final post using the now-known total; 'unread' means
+  // the first-unread probe is still in flight, so hold off. The clamp guards a
+  // reported position past the end (e.g. the topic was fully read after all).
   useEffect(() => {
-    if (!data || landed.current) return;
-    const pos = landTarget.current === 'last' ? total : landTarget.current;
+    if (!data || landed.current || landTarget === 'unread') return;
+    const pos = landTarget === 'last' ? total : Math.min(landTarget, total || landTarget);
     if (!pos) return;
 
     const targetPage = Math.floor((pos - 1) / PAGE_SIZE);
@@ -172,7 +200,7 @@ export function Thread() {
       window.removeEventListener('touchmove', release);
       window.removeEventListener('keydown', release);
     };
-  }, [data, page, total]);
+  }, [data, page, total, landTarget]);
 
   // Scroll to the top of the thread on a manual page change. Skipped while the
   // initial landing is still pending so it doesn't fight the scroll above.
