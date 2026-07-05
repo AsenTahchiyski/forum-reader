@@ -32,7 +32,7 @@ export function PmList() {
       {error && items.length === 0 && <ErrorBanner message={error} onRetry={reload} />}
       {loading && items.length === 0 && <LoadingScreen label="Loading…" />}
 
-      <div className="mx-auto max-w-2xl p-4">
+      <div className="mx-auto max-w-4xl p-4">
         <ul className="space-y-2">
           {items.map((m) => (
             <li key={m.id}>

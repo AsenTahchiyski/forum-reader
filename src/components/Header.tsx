@@ -16,7 +16,7 @@ export function Header({ title, subtitle, back, onBack, right, busy }: Props) {
   const navigate = useNavigate();
   return (
     <header className="glass sticky top-0 z-20 border-b border-line">
-      <div className="mx-auto max-w-2xl flex items-center gap-1 h-14 px-2">
+      <div className="mx-auto max-w-4xl flex items-center gap-1 h-14 px-2">
         {back && (
           <button
             aria-label="Back"

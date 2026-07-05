@@ -296,7 +296,7 @@ export function Thread() {
       {loading && !data && <LoadingScreen label="Loading posts…" />}
 
       {data && (
-        <div className="mx-auto max-w-2xl p-4">
+        <div className="mx-auto max-w-4xl p-4">
           <div className="space-y-3">
             {posts.map((post, i) => {
               const number = page * PAGE_SIZE + i + 1;

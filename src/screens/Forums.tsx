@@ -47,7 +47,7 @@ export function Forums() {
       {!settings.proxyBaseUrl && (
         <button
           onClick={() => navigate('/settings')}
-          className="mx-auto block w-full max-w-2xl text-left"
+          className="mx-auto block w-full max-w-4xl text-left"
         >
           <div className="m-4 rounded-xl border border-accent/40 bg-[rgb(var(--accent)/0.08)] p-4">
             <p className="text-sm font-medium text-ink">Set up your relay first</p>
@@ -59,7 +59,7 @@ export function Forums() {
         </button>
       )}
 
-      <div className="mx-auto max-w-2xl p-4">
+      <div className="mx-auto max-w-4xl p-4">
         {forums.length === 0 ? (
           <div className="text-center py-16 text-ink-dim">
             <p className="font-medium text-ink">No forums yet</p>

@@ -58,7 +58,7 @@ export function MessageView() {
       {loading && !data && <LoadingScreen label="Loading message…" />}
 
       {data && (
-        <div className="mx-auto max-w-2xl p-4 space-y-4">
+        <div className="mx-auto max-w-4xl p-4 space-y-4">
           <div className="rounded-2xl border border-line bg-surface-2 overflow-hidden">
             <header className="flex items-center gap-2.5 p-3 border-b border-line">
               <button

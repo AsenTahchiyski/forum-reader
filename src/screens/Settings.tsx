@@ -113,7 +113,7 @@ export function Settings() {
   return (
     <div>
       <Header title="Settings" />
-      <div className="mx-auto max-w-2xl p-4 space-y-6">
+      <div className="mx-auto max-w-4xl p-4 space-y-6">
         {/* Appearance */}
         <Section title="Appearance">
           <Row label="Theme">

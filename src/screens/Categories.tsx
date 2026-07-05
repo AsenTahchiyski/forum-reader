@@ -57,7 +57,7 @@ export function Categories() {
       {error && <ErrorBanner message={error} onRetry={reload} />}
       {loading && !data && <LoadingScreen label="Loading forums…" />}
       {data && (
-        <div className="mx-auto max-w-2xl p-4 space-y-5">
+        <div className="mx-auto max-w-4xl p-4 space-y-5">
           <button
             onClick={() => navigate(`/f/${forumId}/new`)}
             className="w-full flex items-center gap-3 rounded-2xl border border-accent/40 bg-[rgb(var(--accent)/0.08)] p-3 text-left hover:border-accent/70 transition-colors"

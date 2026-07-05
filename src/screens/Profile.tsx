@@ -59,7 +59,7 @@ export function Profile() {
       {loading && !data && <LoadingScreen label="Loading profile…" />}
 
       {data && (
-        <div className="mx-auto max-w-2xl p-4 space-y-4">
+        <div className="mx-auto max-w-4xl p-4 space-y-4">
           <div className="flex items-center gap-3">
             <Avatar name={name} src={data.avatar} size={64} />
             <div className="min-w-0 flex-1">

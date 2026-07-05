@@ -112,7 +112,7 @@ export function TopicList() {
       {loading && !data && <LoadingScreen label="Loading topics…" />}
 
       {data && (
-        <div className="mx-auto max-w-2xl p-4">
+        <div className="mx-auto max-w-4xl p-4">
           <ul className="space-y-2">
             {topics.map((t) => (
               <li key={t.id}>

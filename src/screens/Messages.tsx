@@ -42,7 +42,7 @@ export function Messages() {
       {error && <ErrorBanner message={error} onRetry={reload} />}
       {loading && !data && <LoadingScreen label="Loading messages…" />}
       {data && (
-        <div className="mx-auto max-w-2xl p-4">
+        <div className="mx-auto max-w-4xl p-4">
           {data.length === 0 ? (
             <p className="text-center text-ink-dim py-10 text-sm">
               No message folders available.

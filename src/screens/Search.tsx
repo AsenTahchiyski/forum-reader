@@ -56,7 +56,7 @@ export function Search() {
     <div>
       <Header title="Search" back busy={loading && items.length > 0} />
 
-      <div className="mx-auto max-w-2xl p-4">
+      <div className="mx-auto max-w-4xl p-4">
         <form onSubmit={submit} className="flex gap-2">
           <Field
             autoFocus

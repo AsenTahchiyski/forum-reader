@@ -94,7 +94,7 @@ export function AddForum() {
   return (
     <div>
       <Header title="Add forum" back />
-      <div className="mx-auto max-w-2xl p-4 space-y-4">
+      <div className="mx-auto max-w-4xl p-4 space-y-4">
         <form
           className="space-y-4"
           onSubmit={(e) => {

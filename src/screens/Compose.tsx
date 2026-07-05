@@ -47,7 +47,7 @@ export function Compose() {
   return (
     <div>
       <Header title="New message" back />
-      <div className="mx-auto max-w-2xl p-4">
+      <div className="mx-auto max-w-4xl p-4">
         <form
           className="space-y-4"
           onSubmit={(e) => {

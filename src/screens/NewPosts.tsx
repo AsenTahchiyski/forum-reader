@@ -27,7 +27,7 @@ export function NewPosts() {
       {loading && items.length === 0 && <LoadingScreen label="Loading new posts…" />}
 
       {(items.length > 0 || done) && (
-        <div className="mx-auto max-w-2xl p-4">
+        <div className="mx-auto max-w-4xl p-4">
           {items.length === 0 ? (
             <p className="text-center text-ink-dim py-16 text-sm">
               You're all caught up — no unread topics.
