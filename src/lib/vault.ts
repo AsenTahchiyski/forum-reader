@@ -1,20 +1,18 @@
 /**
- * The credential vault: high-level lock / unlock and secret encryption.
+ * The credential vault: secret encryption without a startup lock.
  *
- * The data-encryption key (DEK) lives in module memory only while unlocked and
- * is cleared on lock. Persisted state (the wrapped DEK + salts) lives in the
- * `vault` Dexie table; forum secrets are AES-GCM blobs on each forum row.
+ * The data-encryption key (DEK) is stored on-device in the `vault` Dexie
+ * table and loaded automatically at startup — no unlock prompt, matching how
+ * apps like Tapatalk keep forum logins. Forum secrets stay AES-GCM blobs on
+ * each forum row so they are opaque to casual inspection, but anyone with
+ * access to this browser profile can decrypt them.
+ *
+ * Legacy vaults created behind a biometric/passphrase lock are unlocked one
+ * final time (the DEK can't be recovered without it) and converted to the
+ * no-lock format on success.
  */
-import {
-  clearSessionCache,
-  clearVault,
-  db,
-  getSessionCache,
-  getVault,
-  putSessionCache,
-  putVault
-} from '../db/db';
-import type { EncBlob, ForumSecrets, UnlockMethod } from '../db/types';
+import { clearVault, db, getVault, putVault } from '../db/db';
+import type { EncBlob, ForumSecrets } from '../db/types';
 import {
   decryptJson,
   deriveKeyFromPassphrase,
@@ -22,12 +20,11 @@ import {
   encryptJson,
   fromB64,
   generateDek,
-  randomBytes,
+  importDek,
   toB64,
-  unwrapDek,
-  wrapDek
+  unwrapDek
 } from './crypto';
-import { getPrfOutput, registerPrfCredential } from './webauthn';
+import { getPrfOutput } from './webauthn';
 
 let dek: CryptoKey | null = null;
 const listeners = new Set<() => void>();
@@ -45,75 +42,45 @@ export function isUnlocked(): boolean {
   return dek !== null;
 }
 
-export function lock(): void {
-  dek = null;
-  void forgetSession();
-  emit();
-}
+// ---- Startup --------------------------------------------------------------
 
-// ---- Reload persistence ---------------------------------------------------
-//
-// Keep the unlocked key alive across page reloads (but not a fresh app launch)
-// by caching it in IndexedDB behind a sessionStorage marker. sessionStorage is
-// per-tab and cleared when the tab/PWA closes, so it cleanly separates "reload"
-// from "cold start" without ever writing the key into sessionStorage itself.
-
-const SESSION_KEY = 'fr_session';
-
-/** Persist the live DEK so the next reload in this tab can pick it back up. */
-async function cacheSession(): Promise<void> {
+/** Store the live DEK as a no-lock vault record so startup never prompts. */
+async function persistNoLock(createdAt: number): Promise<void> {
   if (!dek) return;
-  try {
-    const sessionId = toB64(randomBytes(16));
-    sessionStorage.setItem(SESSION_KEY, sessionId);
-    await putSessionCache({ id: 'dek', sessionId, key: dek });
-  } catch {
-    // sessionStorage / IndexedDB may be unavailable (private mode, etc.).
-    // Unlocking still works; the user just re-unlocks after a reload.
-  }
-}
-
-/** Drop the cached key and its marker. */
-async function forgetSession(): Promise<void> {
-  try {
-    sessionStorage.removeItem(SESSION_KEY);
-  } catch {
-    /* ignore */
-  }
-  try {
-    await clearSessionCache();
-  } catch {
-    /* ignore */
-  }
+  const raw = await crypto.subtle.exportKey('raw', dek);
+  await putVault({
+    id: 'default',
+    method: 'none',
+    dekRaw: toB64(raw),
+    createdAt
+  });
 }
 
 /**
- * Attempt to restore the DEK after a reload. Returns true if the vault is now
- * unlocked. On a cold start (no matching sessionStorage marker) the stale key
- * is purged so it never lingers at rest, and the caller shows the unlock UI.
+ * Make the vault usable without user interaction: create it on first run,
+ * load the stored DEK otherwise. Returns false only for a legacy locked
+ * vault, which still needs one manual unlock (and is converted then).
  */
-export async function restoreSession(): Promise<boolean> {
+export async function ensureUnlocked(): Promise<boolean> {
   if (dek) return true;
-  try {
-    const sessionId = sessionStorage.getItem(SESSION_KEY);
-    const row = await getSessionCache();
-    if (sessionId && row && row.sessionId === sessionId) {
-      dek = row.key;
-      emit();
-      return true;
-    }
-  } catch {
-    /* fall through to purge */
+  const v = await getVault();
+  if (!v) {
+    dek = await generateDek();
+    await persistNoLock(Date.now());
+    emit();
+    return true;
   }
-  await forgetSession();
+  if (v.method === 'none' && v.dekRaw) {
+    dek = await importDek(fromB64(v.dekRaw));
+    emit();
+    return true;
+  }
   return false;
 }
 
-export async function hasVault(): Promise<boolean> {
-  return Boolean(await getVault());
-}
+// ---- Legacy unlock (one final time, then converted) ------------------------
 
-export async function vaultMethod(): Promise<UnlockMethod | null> {
+export async function vaultMethod(): Promise<string | null> {
   const v = await getVault();
   return v?.method ?? null;
 }
@@ -123,78 +90,15 @@ export async function hasPassphraseUnlock(): Promise<boolean> {
   return !!v && (v.method === 'passphrase' || !!v.passphraseWrap);
 }
 
-// ---- Setup ----------------------------------------------------------------
-
-export async function setupWithBiometric(): Promise<void> {
-  const prfSalt = randomBytes(32);
-  const reg = await registerPrfCredential(prfSalt);
-  if (!reg) {
-    throw new Error(
-      'This device did not provide a biometric secret. Set up a passphrase instead.'
-    );
-  }
-  const hkdfSalt = randomBytes(32);
-  const wrappingKey = await deriveKeyFromPrf(reg.prfOutput, hkdfSalt);
-  const freshDek = await generateDek();
-  const wrappedDek = await wrapDek(freshDek, wrappingKey);
-
-  await putVault({
-    id: 'default',
-    method: 'webauthn',
-    wrappedDek,
-    salt: toB64(hkdfSalt),
-    credentialId: reg.credentialId,
-    prfSalt: toB64(prfSalt),
-    createdAt: Date.now()
-  });
-  dek = freshDek;
-  await cacheSession();
-  emit();
-}
-
-export async function setupWithPassphrase(passphrase: string): Promise<void> {
-  const salt = randomBytes(16);
-  const wrappingKey = await deriveKeyFromPassphrase(passphrase, salt);
-  const freshDek = await generateDek();
-  const wrappedDek = await wrapDek(freshDek, wrappingKey);
-
-  await putVault({
-    id: 'default',
-    method: 'passphrase',
-    wrappedDek,
-    salt: toB64(salt),
-    createdAt: Date.now()
-  });
-  dek = freshDek;
-  await cacheSession();
-  emit();
-}
-
-/** Add a passphrase as a recovery method to an existing (unlocked) vault. */
-export async function addPassphraseFallback(passphrase: string): Promise<void> {
-  if (!dek) throw new Error('Unlock the vault first.');
-  const v = await getVault();
-  if (!v) throw new Error('No vault to update.');
-  const salt = randomBytes(16);
-  const wrappingKey = await deriveKeyFromPassphrase(passphrase, salt);
-  const wrappedDek = await wrapDek(dek, wrappingKey);
-  await putVault({
-    ...v,
-    passphraseWrap: { wrappedDek, salt: toB64(salt) }
-  });
-}
-
-// ---- Unlock ---------------------------------------------------------------
-
 export async function unlockWithBiometric(): Promise<void> {
   const v = await getVault();
-  if (!v || v.method !== 'webauthn' || !v.credentialId || !v.prfSalt) {
+  if (!v || v.method !== 'webauthn' || !v.credentialId || !v.prfSalt || !v.salt || !v.wrappedDek) {
     throw new Error('No biometric vault is configured.');
   }
   const prfOutput = await getPrfOutput(v.credentialId, fromB64(v.prfSalt));
   const wrappingKey = await deriveKeyFromPrf(prfOutput, fromB64(v.salt));
   dek = await unwrapDek(v.wrappedDek, wrappingKey);
-  await cacheSession();
+  await persistNoLock(v.createdAt);
   emit();
 }
 
@@ -203,7 +107,7 @@ export async function unlockWithPassphrase(passphrase: string): Promise<void> {
   if (!v) throw new Error('No vault is configured.');
 
   try {
-    if (v.method === 'passphrase') {
+    if (v.method === 'passphrase' && v.wrappedDek && v.salt) {
       const wrappingKey = await deriveKeyFromPassphrase(passphrase, fromB64(v.salt));
       dek = await unwrapDek(v.wrappedDek, wrappingKey);
     } else if (v.passphraseWrap) {
@@ -219,7 +123,7 @@ export async function unlockWithPassphrase(passphrase: string): Promise<void> {
     if (err instanceof Error && err.message.includes('No passphrase')) throw err;
     throw new Error('Incorrect passphrase.');
   }
-  await cacheSession();
+  await persistNoLock(v.createdAt);
   emit();
 }
 
@@ -236,13 +140,15 @@ export async function decryptSecrets(blob: EncBlob): Promise<ForumSecrets> {
 }
 
 /**
- * Destroy the vault and every stored forum (their secrets become permanently
- * undecryptable once the DEK is gone). Used for "forget everything" / recovery.
+ * Destroy every stored forum and rotate the DEK (old secrets become
+ * permanently undecryptable). The app stays usable with a fresh empty vault.
  */
 export async function resetVault(): Promise<void> {
   await db.transaction('rw', db.vault, db.forums, async () => {
     await clearVault();
     await db.forums.clear();
   });
-  lock();
+  dek = await generateDek();
+  await persistNoLock(Date.now());
+  emit();
 }

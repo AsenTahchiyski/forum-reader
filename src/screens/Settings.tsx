@@ -4,20 +4,14 @@ import { Button } from '../components/Button';
 import { Field } from '../components/Field';
 import { Header } from '../components/Header';
 import { Modal } from '../components/Modal';
-import { LoadingScreen, Spinner } from '../components/Spinner';
+import { LoadingScreen } from '../components/Spinner';
 import { deleteForum, updateSettings } from '../db/db';
 import type { ThemeMode } from '../db/types';
 import { dropAllConnections, dropConnection } from '../forum/connection';
 import { PRESET_ACCENTS } from '../lib/color';
 import { cx } from '../lib/cx';
 import { hostOf } from '../lib/url';
-import {
-  addPassphraseFallback,
-  hasPassphraseUnlock,
-  lock,
-  resetVault,
-  vaultMethod
-} from '../lib/vault';
+import { resetVault } from '../lib/vault';
 import { useForums } from '../hooks/useForums';
 import { useSettings } from '../hooks/useSettings';
 
@@ -36,16 +30,8 @@ export function Settings() {
   const [relayToken, setRelayToken] = useState('');
   const [relaySaved, setRelaySaved] = useState(false);
 
-  const [method, setMethod] = useState<string | null>(null);
-  const [hasPass, setHasPass] = useState(false);
-
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [passModal, setPassModal] = useState(false);
-  const [pass, setPass] = useState('');
-  const [passConfirm, setPassConfirm] = useState('');
-  const [passError, setPassError] = useState<string | null>(null);
-  const [passBusy, setPassBusy] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -53,13 +39,6 @@ export function Settings() {
       setRelayToken(settings.relayToken);
     }
   }, [settings?.proxyBaseUrl, settings?.relayToken]);
-
-  useEffect(() => {
-    (async () => {
-      setMethod(await vaultMethod());
-      setHasPass(await hasPassphraseUnlock());
-    })();
-  }, []);
 
   if (!settings || !forums) return <LoadingScreen />;
 
@@ -84,29 +63,6 @@ export function Settings() {
     await resetVault();
     dropAllConnections();
     setConfirmReset(false);
-    // Vault is now locked with no record → App shows first-run setup.
-  };
-
-  const onAddPassphrase = async () => {
-    setPassError(null);
-    if (pass.length < 6) return setPassError('Use at least 6 characters.');
-    if (pass !== passConfirm) return setPassError('Passphrases do not match.');
-    setPassBusy(true);
-    try {
-      await addPassphraseFallback(pass);
-      setHasPass(true);
-      setPassModal(false);
-      setPass('');
-      setPassConfirm('');
-    } catch (err) {
-      setPassError(err instanceof Error ? err.message : 'Could not save.');
-    } finally {
-      setPassBusy(false);
-    }
-  };
-
-  const lockNow = () => {
-    lock();
     navigate('/');
   };
 
@@ -235,26 +191,18 @@ export function Settings() {
         {/* Security */}
         <Section title="Security">
           <p className="text-sm text-ink-dim">
-            Unlock method: <span className="text-ink font-medium">{method === 'webauthn' ? 'Biometrics' : method === 'passphrase' ? 'Passphrase' : '—'}</span>
-            {method === 'webauthn' && (hasPass ? ' (passphrase recovery set)' : ' (no recovery set)')}
+            Logins are stored on this device and open without a prompt, like
+            Tapatalk. Anyone with access to this browser profile can use them.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
-            <Button variant="outline" size="sm" onClick={lockNow}>
-              Lock now
-            </Button>
-            {method === 'webauthn' && !hasPass && (
-              <Button variant="ghost" size="sm" onClick={() => setPassModal(true)}>
-                Add passphrase recovery
-              </Button>
-            )}
             <Button variant="danger" size="sm" onClick={() => setConfirmReset(true)}>
-              Reset vault
+              Erase all logins
             </Button>
           </div>
         </Section>
 
         <p className="text-center text-xs text-ink-dim pb-4">
-          Forum Reader · credentials are encrypted on this device only.
+          Forum Reader · credentials are stored on this device only.
         </p>
       </div>
 
@@ -274,39 +222,19 @@ export function Settings() {
         </div>
       </Modal>
 
-      {/* Confirm: reset vault */}
-      <Modal open={confirmReset} onClose={() => setConfirmReset(false)} title="Reset vault?">
+      {/* Confirm: erase all logins */}
+      <Modal open={confirmReset} onClose={() => setConfirmReset(false)} title="Erase all logins?">
         <p className="text-sm text-ink-dim">
-          This deletes the vault and <strong>all saved forums and logins</strong> from this
-          device. You'll set up a new vault next. This cannot be undone.
+          This deletes <strong>all saved forums and logins</strong> from this
+          device. This cannot be undone.
         </p>
         <div className="flex gap-2 justify-end mt-4">
           <Button variant="ghost" size="sm" onClick={() => setConfirmReset(false)}>
             Cancel
           </Button>
           <Button variant="danger" size="sm" onClick={onReset}>
-            Reset everything
+            Erase everything
           </Button>
-        </div>
-      </Modal>
-
-      {/* Add passphrase recovery */}
-      <Modal open={passModal} onClose={() => setPassModal(false)} title="Passphrase recovery">
-        <p className="text-sm text-ink-dim mb-3">
-          Set a passphrase you can use if biometrics ever become unavailable.
-        </p>
-        <div className="space-y-3">
-          <Field type="password" placeholder="Passphrase" value={pass} onChange={(e) => setPass(e.target.value)} />
-          <Field type="password" placeholder="Confirm" value={passConfirm} onChange={(e) => setPassConfirm(e.target.value)} />
-          {passError && <p className="text-sm text-[rgb(255,107,107)]">{passError}</p>}
-          <div className="flex gap-2 justify-end">
-            <Button variant="ghost" size="sm" onClick={() => setPassModal(false)} disabled={passBusy}>
-              Cancel
-            </Button>
-            <Button size="sm" onClick={onAddPassphrase} disabled={passBusy}>
-              {passBusy ? <Spinner /> : 'Save'}
-            </Button>
-          </div>
         </div>
       </Modal>
     </div>

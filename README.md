@@ -26,12 +26,13 @@ setup, then paste the relay URL + token into the app's **Settings → Relay**.
 
 ## Security
 
-- Forum passwords are **AES-GCM encrypted** on your device (Web Crypto). The key
-  is unlocked by **biometrics** (WebAuthn PRF — Touch ID / Face ID / fingerprint
-  / Windows Hello) with a **passphrase fallback** for devices without it.
-- The decryption key lives in memory only while unlocked and is cleared on lock.
-- Browser origin isolation already prevents other sites/apps from reading the
-  app's storage; encryption adds protection if device storage is dumped.
+- Forum passwords are **AES-GCM encrypted** on your device (Web Crypto). The
+  key is stored on the device too and loaded automatically at startup — no
+  unlock prompt, the same trust model as Tapatalk's saved logins.
+- Browser origin isolation prevents other sites/apps from reading the app's
+  storage; anyone with access to this browser profile can use the saved logins.
+- Vaults created by older versions (biometric/passphrase lock) ask for one
+  final unlock, then convert to prompt-free startup.
 
 ## Features
 

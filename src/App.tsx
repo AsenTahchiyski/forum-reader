@@ -8,7 +8,7 @@ import {
 import { LoadingScreen } from './components/Spinner';
 import { TabBar } from './components/TabBar';
 import { getActiveForumId } from './lib/activeForum';
-import { hasVault, restoreSession } from './lib/vault';
+import { ensureUnlocked } from './lib/vault';
 import { ThemeProvider } from './theme/ThemeProvider';
 import { useForums } from './hooks/useForums';
 import { useSettings } from './hooks/useSettings';
@@ -31,23 +31,16 @@ import { TopicList } from './screens/TopicList';
 export function App() {
   const settings = useSettings();
   const unlocked = useVaultUnlocked();
-  const [vaultExists, setVaultExists] = useState<boolean | null>(null);
-  const [restored, setRestored] = useState(false);
+  const [booted, setBooted] = useState(false);
 
-  // On boot, try to revive the key cached from before a page reload so the
-  // user isn't re-prompted. A genuine cold start finds no match and stays
-  // locked. Runs once; later lock/unlock transitions don't need it.
+  // On boot, load (or first-run create) the stored key — no prompt. Only a
+  // legacy locked vault stays locked, and the Lock screen converts it after
+  // one final unlock.
   useEffect(() => {
-    restoreSession().finally(() => setRestored(true));
+    ensureUnlocked().finally(() => setBooted(true));
   }, []);
 
-  // Re-check whether a vault exists whenever the lock state changes (covers
-  // first-time setup and "reset vault").
-  useEffect(() => {
-    hasVault().then(setVaultExists);
-  }, [unlocked]);
-
-  if (!settings || vaultExists === null || !restored) {
+  if (!settings || !booted) {
     return <LoadingScreen />;
   }
 
@@ -78,7 +71,7 @@ export function App() {
           </div>
         </HashRouter>
       ) : (
-        <Lock existing={vaultExists} />
+        <Lock />
       )}
     </ThemeProvider>
   );

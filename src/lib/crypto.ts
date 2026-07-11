@@ -95,20 +95,24 @@ export async function wrapDek(
 }
 
 /**
- * Decrypt the wrapped DEK and import it. Imported as extractable so the DEK
- * can be re-wrapped later (e.g. when adding a passphrase fallback). This does
- * not weaken security meaningfully: anything able to run JS here can already
- * use the live key to decrypt secrets.
+ * Import raw DEK bytes. Imported as extractable so the DEK can be exported
+ * again (e.g. when persisting it for no-lock startup). This does not weaken
+ * security meaningfully: anything able to run JS here can already use the
+ * live key to decrypt secrets.
  */
-export async function unwrapDek(
-  blob: EncBlob,
-  wrappingKey: CryptoKey
-): Promise<CryptoKey> {
-  const raw = await aesDecrypt(wrappingKey, blob);
+export async function importDek(raw: ArrayBuffer | Uint8Array): Promise<CryptoKey> {
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, true, [
     'encrypt',
     'decrypt'
   ]);
+}
+
+/** Decrypt the wrapped DEK and import it. */
+export async function unwrapDek(
+  blob: EncBlob,
+  wrappingKey: CryptoKey
+): Promise<CryptoKey> {
+  return importDek(await aesDecrypt(wrappingKey, blob));
 }
 
 // ---- Wrapping-key derivation ---------------------------------------------

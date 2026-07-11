@@ -1,7 +1,12 @@
 export type ThemeMode = 'system' | 'light' | 'dark';
 
-/** How the credential vault's data-encryption key is unwrapped. */
-export type UnlockMethod = 'webauthn' | 'passphrase';
+/**
+ * How the credential vault's data-encryption key is unwrapped. 'none' means
+ * the key is stored on-device and the app auto-unlocks at startup (Tapatalk
+ * style); 'webauthn' / 'passphrase' are legacy locked vaults kept only so
+ * they can be unlocked one final time and converted.
+ */
+export type UnlockMethod = 'none' | 'webauthn' | 'passphrase';
 
 /** A chunk of AES-GCM ciphertext stored as base64 strings. */
 export interface EncBlob {
@@ -59,31 +64,20 @@ export interface ForumSecrets {
 }
 
 /**
- * Caches the live data-encryption key so a page reload doesn't force a
- * re-unlock. The CryptoKey is held by IndexedDB (structured clone), but only
- * usable while `sessionId` still matches the value in sessionStorage — which
- * is cleared when the tab/PWA is closed. So the cache survives reloads but a
- * genuine cold start finds no match and re-prompts. Cleared on lock/reset and
- * whenever a cold start invalidates it.
- */
-export interface SessionCache {
-  id: 'dek';
-  sessionId: string;
-  key: CryptoKey;
-}
-
-/**
- * Singleton vault record. The data-encryption key (DEK) is generated once,
- * then wrapped by a key derived either from a WebAuthn PRF output (biometric)
- * or a passphrase (PBKDF2). The DEK itself is never stored unwrapped.
+ * Singleton vault record. The data-encryption key (DEK) is generated once.
+ * With method 'none' its raw bytes are stored in `dekRaw` and loaded at
+ * startup without prompting. Legacy locked vaults instead store the DEK
+ * wrapped by a key derived from a WebAuthn PRF output or a passphrase.
  */
 export interface VaultRecord {
   id: 'default';
   method: UnlockMethod;
-  /** Wrapped (encrypted) DEK. */
-  wrappedDek: EncBlob;
+  /** base64 raw DEK when method === 'none'. */
+  dekRaw?: string;
+  /** Wrapped (encrypted) DEK for legacy locked methods. */
+  wrappedDek?: EncBlob;
   /** base64 salt for HKDF (webauthn) or PBKDF2 (passphrase). */
-  salt: string;
+  salt?: string;
   /** WebAuthn credential id (base64url) when method === 'webauthn'. */
   credentialId?: string;
   /** base64 32-byte salt fed to the PRF extension when method === 'webauthn'. */
