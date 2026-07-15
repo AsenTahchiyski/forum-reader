@@ -21,6 +21,8 @@ interface NavState {
   hasNew?: boolean;
   replyCount?: number;
   unreadPosition?: number;
+  /** 1-based post position to land on (set by PostJump for quote links). */
+  jumpTo?: number;
 }
 
 export function Thread() {
@@ -43,6 +45,7 @@ export function Thread() {
   // Where to start: the first unread post if the plugin told us, otherwise the
   // last page so we can land on the newest post (see landTarget below).
   const [page, setPage] = useState<number>(() => {
+    if (st.jumpTo) return Math.floor((st.jumpTo - 1) / PAGE_SIZE);
     if (firstUnread) return Math.floor((firstUnread - 1) / PAGE_SIZE);
     if (estTotal) return Math.floor((estTotal - 1) / PAGE_SIZE);
     return 0; // total unknown — corrected to the last page once data arrives
@@ -59,7 +62,7 @@ export function Thread() {
   // page scrollable above, then mark `landed` so later page changes jump to the
   // top. State, not a ref: the probe resolving must re-run the landing effect.
   const [landTarget, setLandTarget] = useState<number | 'last' | 'unread'>(
-    st.hasNew ? 'unread' : (firstUnread ?? 'last')
+    st.jumpTo ?? (st.hasNew ? 'unread' : (firstUnread ?? 'last'))
   );
   const landed = useRef(false);
 
@@ -67,7 +70,7 @@ export function Thread() {
   // in parallel with the first page fetch. On plugins without the endpoint (or
   // a missing position) fall back to the topic list's snapshot, then 'last'.
   useEffect(() => {
-    if (!st.hasNew) return;
+    if (!st.hasNew || st.jumpTo) return; // an explicit jump target wins
     let cancelled = false;
     (async () => {
       let pos = 0;
@@ -107,8 +110,8 @@ export function Thread() {
 
   // Drop the post's text into the composer as a [quote] block, opening it if
   // needed and appending when the user is already drafting.
-  const quote = (author: string, content: string) => {
-    const block = quotePost(author, content);
+  const quote = (author: string, content: string, postId: string, postTime?: string) => {
+    const block = quotePost(author, content, { postId, postTime });
     setBody((b) => (b.trim() ? `${b.trimEnd()}\n\n${block}` : block));
     setReplyOpen(true);
     requestAnimationFrame(() => {
@@ -361,7 +364,11 @@ export function Thread() {
                         </div>
                       )
                     ) : (
-                      <PostContent content={edited[post.id] ?? post.content} showMedia={showMedia} />
+                      <PostContent
+                        content={edited[post.id] ?? post.content}
+                        showMedia={showMedia}
+                        forumId={forumId}
+                      />
                     )}
                   </div>
                   {editingId !== post.id && (data.canReply || post.canEdit) && (
@@ -378,7 +385,9 @@ export function Thread() {
                       {data.canReply && (
                         <button
                           type="button"
-                          onClick={() => quote(post.author, edited[post.id] ?? post.content)}
+                          onClick={() =>
+                            quote(post.author, edited[post.id] ?? post.content, post.id, post.postTime)
+                          }
                           className="text-xs font-medium text-ink-dim hover:text-accent transition-colors"
                         >
                           Quote

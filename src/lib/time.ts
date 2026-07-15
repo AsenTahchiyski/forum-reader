@@ -59,7 +59,15 @@ const isSameDay = (a: Date, b: Date) =>
 export function formatWhen(s?: string): string {
   const d = parseForumDate(s);
   if (!d) return s || '';
+  return friendly(d);
+}
 
+/** formatWhen for a unix-seconds timestamp (BBCode quote `time=` attributes). */
+export function formatEpoch(sec: number): string {
+  return friendly(new Date(sec * 1000));
+}
+
+function friendly(d: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const HOUR = 3_600_000;

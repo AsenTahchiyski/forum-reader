@@ -22,6 +22,7 @@ import { MessageView } from './screens/MessageView';
 import { Messages } from './screens/Messages';
 import { NewPosts } from './screens/NewPosts';
 import { PmList } from './screens/PmList';
+import { PostJump } from './screens/PostJump';
 import { Profile } from './screens/Profile';
 import { Search } from './screens/Search';
 import { Settings } from './screens/Settings';
@@ -58,6 +59,7 @@ export function App() {
               <Route path="/f/:forumId/search" element={<Search />} />
               <Route path="/f/:forumId/sub/:catId" element={<TopicList />} />
               <Route path="/f/:forumId/t/:topicId" element={<Thread />} />
+              <Route path="/f/:forumId/p/:postId" element={<PostJump />} />
               <Route path="/f/:forumId/u/:userId" element={<Profile />} />
               <Route path="/f/:forumId/pm" element={<Messages />} />
               <Route path="/f/:forumId/pm/:boxId" element={<PmList />} />

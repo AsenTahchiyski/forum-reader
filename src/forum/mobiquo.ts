@@ -295,6 +295,23 @@ export class MobiquoClient {
     return pickInt(s, ['position', 'unread_position']);
   }
 
+  /**
+   * Locate a post by id: the topic holding it and the post's 1-based position
+   * in that topic, via get_thread_by_post. Used to resolve quote links, whose
+   * BBCode carries only a post_id. We ask for a single post and use only the
+   * location fields; the Thread screen fetches its own pages.
+   */
+  async locatePost(
+    postId: string
+  ): Promise<{ topicId: string; position: number; title: string }> {
+    const s = asStruct(await this.call('get_thread_by_post', [postId, 1]));
+    return {
+      topicId: pickStr(s, ['topic_id']),
+      title: pickStr(s, ['topic_title', 'title']),
+      position: pickInt(s, ['position', 'post_position'])
+    };
+  }
+
   private mapPost(s: Struct): Post {
     const author = pickPerson(s, ['post_author']);
     return {
