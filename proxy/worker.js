@@ -98,12 +98,20 @@ export default {
     const cookie = request.headers.get('X-Forum-Session');
     if (cookie) fwdHeaders['Cookie'] = cookie;
 
+    // Buffer the body so the forwarded POST carries a Content-Length. Streaming
+    // request.body straight through makes the subrequest use chunked transfer
+    // encoding, and some forum servers (e.g. Apache behind a CDN) drop chunked
+    // POST bodies — the mobiquo plugin then sees no method and replies
+    // "Invalid action". A buffered body is sent exactly like a normal browser
+    // POST.
+    const reqBody = await request.arrayBuffer();
+
     let upstream;
     try {
       upstream = await fetch(url.toString(), {
         method: 'POST',
         headers: fwdHeaders,
-        body: request.body,
+        body: reqBody,
         redirect: 'follow'
       });
     } catch (e) {
