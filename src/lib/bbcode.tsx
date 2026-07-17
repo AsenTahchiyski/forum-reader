@@ -152,20 +152,27 @@ function replaceSmilies(html: string): string {
  *   [quote name="Bob" time=…]               → Bob + time
  *   [quote author="Bob" …]                  → Bob
  *   [quote=Bob post_id=9 time=5 user_id=3]  → Bob + post id + time (phpBB 3.2+)
+ *   [quote name="Bob" post=42 timestamp=5]  → Bob + post id + time (SMF via
+ *                                             Tapatalk: the plugin rewrites the
+ *                                             stored SMF attrs into this form
+ *                                             before returning post content —
+ *                                             see mobiquo_common.php in
+ *                                             tapatalk-smf2)
  *   [quote author=Jo Doe link=topic=8.msg42#msg42 date=5]
- *                                           → Jo Doe + post id + time (SMF;
+ *                                           → Jo Doe + post id + time (raw SMF,
+ *                                             e.g. get_quote_post/get_raw_post;
  *                                             link=msg=42 is the 2.1 form)
  * `who` is '' for attribute-only tags (e.g. just time=…); the cite then falls
  * back to the timestamp alone.
  */
 function quoteMeta(attr: string): { who: string; postId: string; time: number } {
   const postId =
-    attr.match(/(?:^|\s)post_id\s*=\s*(?:&quot;|")?(\d+)/i)?.[1] ??
+    attr.match(/(?:^|\s)post(?:_id)?\s*=\s*(?:&quot;|")?(\d+)/i)?.[1] ??
     // SMF link= attribute; the msg number is the post id.
     attr.match(/(?:^|\s)link\s*=\s*(?:&quot;|")?[^\s\]]*?msg=?(\d+)/i)?.[1] ??
     '';
   const time = Number(
-    attr.match(/(?:^|\s)(?:time|date)\s*=\s*(?:&quot;|")?(\d+)/i)?.[1] ?? 0
+    attr.match(/(?:^|\s)(?:timestamp|time|date)\s*=\s*(?:&quot;|")?(\d+)/i)?.[1] ?? 0
   );
 
   let who = '';
