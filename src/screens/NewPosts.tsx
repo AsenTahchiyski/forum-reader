@@ -4,6 +4,7 @@ import { ErrorBanner } from '../components/ErrorBanner';
 import { Header } from '../components/Header';
 import { LoadingScreen, Spinner } from '../components/Spinner';
 import { getClient } from '../forum/connection';
+import { t } from '../lib/i18n';
 import { formatWhen } from '../lib/time';
 import { usePaged } from '../hooks/usePaged';
 
@@ -22,15 +23,15 @@ export function NewPosts() {
 
   return (
     <div>
-      <Header title="New posts" back busy={loading && items.length > 0} />
+      <Header title={t('newPosts.title')} back busy={loading && items.length > 0} />
       {error && items.length === 0 && <ErrorBanner message={error} onRetry={reload} />}
-      {loading && items.length === 0 && <LoadingScreen label="Loading new posts…" />}
+      {loading && items.length === 0 && <LoadingScreen label={t('newPosts.loading')} />}
 
       {(items.length > 0 || done) && (
         <div className="mx-auto max-w-4xl p-4">
           {items.length === 0 ? (
             <p className="text-center text-ink-dim py-16 text-sm">
-              You're all caught up — no unread topics.
+              {t('newPosts.caughtUp')}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -73,7 +74,7 @@ export function NewPosts() {
           {!done && items.length > 0 && (
             <div className="mt-4">
               <Button full variant="outline" onClick={loadMore} disabled={loading}>
-                {loading ? <Spinner /> : 'Load more'}
+                {loading ? <Spinner /> : t('common.loadMore')}
               </Button>
             </div>
           )}

@@ -5,6 +5,7 @@ import { Field, TextArea } from '../components/Field';
 import { Header } from '../components/Header';
 import { Spinner } from '../components/Spinner';
 import { getClient } from '../forum/connection';
+import { t } from '../lib/i18n';
 
 export function Compose() {
   const navigate = useNavigate();
@@ -24,21 +25,21 @@ export function Compose() {
       .map((s) => s.trim())
       .filter(Boolean);
     if (recipients.length === 0) {
-      setError('Add at least one recipient.');
+      setError(t('compose.addRecipient'));
       return;
     }
     if (!body.trim()) {
-      setError('Write a message first.');
+      setError(t('compose.writeFirst'));
       return;
     }
     setSending(true);
     try {
       const client = await getClient(accountId);
-      const res = await client.sendMessage(recipients, subject || '(no subject)', body);
-      if (!res.ok) throw new Error(res.message || 'The forum rejected the message.');
+      const res = await client.sendMessage(recipients, subject || t('common.noSubject'), body);
+      if (!res.ok) throw new Error(res.message || t('mv.rejected'));
       navigate(`/f/${accountId}/pm`, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send.');
+      setError(err instanceof Error ? err.message : t('mv.couldNotSend'));
     } finally {
       setSending(false);
     }
@@ -46,7 +47,7 @@ export function Compose() {
 
   return (
     <div>
-      <Header title="New message" back />
+      <Header title={t('compose.title')} back />
       <div className="mx-auto max-w-4xl p-4">
         <form
           className="space-y-4"
@@ -56,27 +57,27 @@ export function Compose() {
           }}
         >
           <Field
-            label="To"
-            placeholder="username, anotheruser"
-            hint="Separate multiple recipients with commas."
+            label={t('compose.to')}
+            placeholder={t('compose.toPlaceholder')}
+            hint={t('compose.toHint')}
             autoCapitalize="none"
             value={to}
             onChange={(e) => setTo(e.target.value)}
           />
           <Field
-            label="Subject"
+            label={t('compose.subject')}
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
           />
           <TextArea
-            label="Message"
+            label={t('compose.message')}
             className="min-h-40"
             value={body}
             onChange={(e) => setBody(e.target.value)}
           />
           {error && <p className="text-sm text-[rgb(255,107,107)]">{error}</p>}
           <Button full size="lg" type="submit" disabled={sending}>
-            {sending ? <Spinner /> : 'Send message'}
+            {sending ? <Spinner /> : t('compose.send')}
           </Button>
         </form>
       </div>

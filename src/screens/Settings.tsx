@@ -10,15 +10,22 @@ import type { ThemeMode } from '../db/types';
 import { dropAllConnections, dropConnection } from '../forum/connection';
 import { PRESET_ACCENTS } from '../lib/color';
 import { cx } from '../lib/cx';
+import { defaultLang, t, type Lang, type MsgKey } from '../lib/i18n';
 import { hostOf } from '../lib/url';
 import { resetVault } from '../lib/vault';
 import { useForums } from '../hooks/useForums';
 import { useSettings } from '../hooks/useSettings';
 
-const THEME_OPTIONS: { id: ThemeMode; label: string }[] = [
-  { id: 'system', label: 'System' },
-  { id: 'light', label: 'Light' },
-  { id: 'dark', label: 'Dark' }
+const THEME_OPTIONS: { id: ThemeMode; label: MsgKey }[] = [
+  { id: 'system', label: 'settings.themeSystem' },
+  { id: 'light', label: 'settings.themeLight' },
+  { id: 'dark', label: 'settings.themeDark' }
+];
+
+// Language names are shown in their own language, so no t() here.
+const LANG_OPTIONS: { id: Lang; label: string }[] = [
+  { id: 'en', label: 'English' },
+  { id: 'bg', label: 'Български' }
 ];
 
 export function Settings() {
@@ -68,11 +75,11 @@ export function Settings() {
 
   return (
     <div>
-      <Header title="Settings" />
+      <Header title={t('settings.title')} />
       <div className="mx-auto max-w-4xl p-4 space-y-6">
         {/* Appearance */}
-        <Section title="Appearance">
-          <Row label="Theme">
+        <Section title={t('settings.appearance')}>
+          <Row label={t('settings.theme')}>
             <div className="flex rounded-xl border border-line overflow-hidden">
               {THEME_OPTIONS.map((opt) => (
                 <button
@@ -85,12 +92,30 @@ export function Settings() {
                       : 'text-ink-dim hover:bg-[rgb(var(--line)/0.5)]'
                   )}
                 >
+                  {t(opt.label)}
+                </button>
+              ))}
+            </div>
+          </Row>
+          <Row label={t('settings.language')}>
+            <div className="flex rounded-xl border border-line overflow-hidden">
+              {LANG_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => updateSettings({ language: opt.id })}
+                  className={cx(
+                    'px-3 h-9 text-sm font-medium',
+                    (settings.language ?? defaultLang()) === opt.id
+                      ? 'bg-accent text-accent-contrast'
+                      : 'text-ink-dim hover:bg-[rgb(var(--line)/0.5)]'
+                  )}
+                >
                   {opt.label}
                 </button>
               ))}
             </div>
           </Row>
-          <Row label="Accent">
+          <Row label={t('settings.accent')}>
             <div className="flex flex-wrap gap-2 justify-end">
               {PRESET_ACCENTS.map((c) => (
                 <button
@@ -108,7 +133,7 @@ export function Settings() {
               ))}
             </div>
           </Row>
-          <Row label="Show images & videos" hint="Render media inline in posts.">
+          <Row label={t('settings.showMedia')} hint={t('settings.showMediaHint')}>
             <Toggle
               on={settings.showMedia}
               onChange={(v) => updateSettings({ showMedia: v })}
@@ -117,7 +142,7 @@ export function Settings() {
         </Section>
 
         {/* Default forum */}
-        <Section title="Default forum" subtitle="Opened automatically when the app launches.">
+        <Section title={t('settings.defaultForum')} subtitle={t('settings.defaultForumHint')}>
           <select
             value={settings.favoriteForumId ?? ''}
             onChange={(e) =>
@@ -127,7 +152,7 @@ export function Settings() {
             }
             className="w-full h-11 px-3 rounded-xl bg-surface-2 border border-line focus:outline-none focus:border-accent"
           >
-            <option value="">No default (show forum list)</option>
+            <option value="">{t('settings.noDefault')}</option>
             {forums.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.name}
@@ -137,12 +162,9 @@ export function Settings() {
         </Section>
 
         {/* Relay */}
-        <Section
-          title="Relay"
-          subtitle="Forum Reader reaches forums through a small relay you host yourself. See proxy/README.md in the project for setup."
-        >
+        <Section title={t('settings.relay')} subtitle={t('settings.relayHint')}>
           <Field
-            label="Relay URL"
+            label={t('settings.relayUrl')}
             placeholder="https://forum-relay.you.workers.dev"
             inputMode="url"
             autoCapitalize="none"
@@ -150,21 +172,21 @@ export function Settings() {
             onChange={(e) => setProxyUrl(e.target.value)}
           />
           <Field
-            label="Relay token"
+            label={t('settings.relayToken')}
             type="password"
-            placeholder="Your RELAY_TOKEN secret"
+            placeholder={t('settings.relayTokenPlaceholder')}
             value={relayToken}
             onChange={(e) => setRelayToken(e.target.value)}
           />
           <Button onClick={saveRelay} variant="outline" size="sm">
-            {relaySaved ? 'Saved ✓' : 'Save relay settings'}
+            {relaySaved ? t('settings.saved') : t('settings.saveRelay')}
           </Button>
         </Section>
 
         {/* Forums */}
-        <Section title="Forums">
+        <Section title={t('settings.forums')}>
           {forums.length === 0 ? (
-            <p className="text-sm text-ink-dim">No forums added.</p>
+            <p className="text-sm text-ink-dim">{t('settings.noForums')}</p>
           ) : (
             <ul className="divide-y divide-line">
               {forums.map((f) => (
@@ -177,63 +199,66 @@ export function Settings() {
                     onClick={() => setConfirmDelete({ id: f.id!, name: f.name })}
                     className="text-sm text-[rgb(255,107,107)] px-2 py-1"
                   >
-                    Remove
+                    {t('common.remove')}
                   </button>
                 </li>
               ))}
             </ul>
           )}
           <Button variant="ghost" size="sm" onClick={() => navigate('/forums/add')}>
-            Add a forum
+            {t('settings.addForum')}
           </Button>
         </Section>
 
         {/* Security */}
-        <Section title="Security">
-          <p className="text-sm text-ink-dim">
-            Logins are stored on this device and open without a prompt, like
-            Tapatalk. Anyone with access to this browser profile can use them.
-          </p>
+        <Section title={t('settings.security')}>
+          <p className="text-sm text-ink-dim">{t('settings.securityNote')}</p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Button variant="danger" size="sm" onClick={() => setConfirmReset(true)}>
-              Erase all logins
+              {t('settings.eraseAll')}
             </Button>
           </div>
         </Section>
 
-        <p className="text-center text-xs text-ink-dim pb-4">
-          Forum Reader · credentials are stored on this device only.
-        </p>
+        <p className="text-center text-xs text-ink-dim pb-4">{t('settings.footer')}</p>
       </div>
 
       {/* Confirm: delete forum */}
-      <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Remove forum?">
+      <Modal
+        open={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        title={t('settings.removeForumTitle')}
+      >
         <p className="text-sm text-ink-dim">
-          Remove <span className="text-ink font-medium">{confirmDelete?.name}</span> and its
-          saved login from this device?
+          {t('settings.removeForumQ1')}{' '}
+          <span className="text-ink font-medium">{confirmDelete?.name}</span>{' '}
+          {t('settings.removeForumQ2')}
         </p>
         <div className="flex gap-2 justify-end mt-4">
           <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(null)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button variant="danger" size="sm" onClick={onDeleteForum}>
-            Remove
+            {t('common.remove')}
           </Button>
         </div>
       </Modal>
 
       {/* Confirm: erase all logins */}
-      <Modal open={confirmReset} onClose={() => setConfirmReset(false)} title="Erase all logins?">
+      <Modal
+        open={confirmReset}
+        onClose={() => setConfirmReset(false)}
+        title={t('settings.eraseTitle')}
+      >
         <p className="text-sm text-ink-dim">
-          This deletes <strong>all saved forums and logins</strong> from this
-          device. This cannot be undone.
+          {t('settings.erase1')} <strong>{t('settings.erase2')}</strong> {t('settings.erase3')}
         </p>
         <div className="flex gap-2 justify-end mt-4">
           <Button variant="ghost" size="sm" onClick={() => setConfirmReset(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button variant="danger" size="sm" onClick={onReset}>
-            Erase everything
+            {t('settings.eraseConfirm')}
           </Button>
         </div>
       </Modal>

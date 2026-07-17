@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n';
 import { Button } from './Button';
 
 interface Props {
@@ -11,7 +12,7 @@ export function ErrorBanner({ message, onRetry }: Props) {
       <p className="text-sm text-[rgb(255,107,107)]">{message}</p>
       {onRetry && (
         <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
-          Try again
+          {t('common.tryAgain')}
         </Button>
       )}
     </div>

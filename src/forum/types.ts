@@ -61,6 +61,9 @@ export interface Post {
   /** Raw content (HTML or BBCode) as returned by mobiquo. */
   content: string;
   canEdit: boolean;
+  /** When / by whom the post was last edited, when the plugin reports it. */
+  editTime?: string;
+  editAuthor?: string;
 }
 
 export interface Thread {

@@ -211,15 +211,29 @@ export class MobiquoClient {
     keywords: string,
     start: number,
     end: number,
-    searchId?: string
+    searchId?: string,
+    forumId?: string
   ): Promise<{ topics: Topic[]; total: number; searchId?: string }> {
-    const params: unknown[] = [b64(keywords), start, end];
-    if (searchId) params.push(searchId);
-    // Use `search_topic`, not `search`: the mobiquo `search` method only accepts
-    // a single advanced-search struct, so our positional (base64, int, int[,
-    // search_id]) args are rejected with "Parameter Error". `search_topic`
-    // declares exactly that positional signature.
-    const raw = await this.call('search_topic', params);
+    let raw: XmlRpcValue;
+    if (forumId) {
+      // A section-scoped search must go through the advanced `search` method:
+      // the positional `search_topic` has no forum filter. Its filters ride in
+      // a single struct, followed by the usual start/end range.
+      const filters: Record<string, unknown> = {
+        keywords: b64(keywords),
+        forumid: forumId
+      };
+      if (searchId) filters.searchid = searchId;
+      raw = await this.call('search', [filters, start, end]);
+    } else {
+      const params: unknown[] = [b64(keywords), start, end];
+      if (searchId) params.push(searchId);
+      // Unscoped searches keep using `search_topic`: the mobiquo `search`
+      // method only accepts the advanced-search struct, so plain positional
+      // (base64, int, int[, search_id]) args are rejected with "Parameter
+      // Error". `search_topic` declares exactly that positional signature.
+      raw = await this.call('search_topic', params);
+    }
     // Results are post hits. Depending on the plugin version they arrive either
     // as a bare array, or wrapped in a struct keyed `topics` or `posts` (with
     // the count under the matching `total_*` name) — probe both, like the other
@@ -314,6 +328,8 @@ export class MobiquoClient {
 
   private mapPost(s: Struct): Post {
     const author = pickPerson(s, ['post_author']);
+    // Unedited posts often carry the edit fields as 0 / '' — treat as absent.
+    const editTime = pickStr(s, ['edit_time', 'edit_date', 'modified_time', 'last_edit_time']);
     return {
       id: pickStr(s, ['post_id', 'id']),
       author: author.name || pickStr(s, ['post_author_name', 'author_name']),
@@ -323,7 +339,11 @@ export class MobiquoClient {
       ),
       postTime: pickStr(s, ['post_time', 'post_date']) || undefined,
       content: pickStr(s, ['post_content', 'content', 'text_body']),
-      canEdit: pickBool(s, ['can_edit'])
+      canEdit: pickBool(s, ['can_edit']),
+      editTime: editTime && editTime !== '0' ? editTime : undefined,
+      editAuthor:
+        pickStr(s, ['edit_author', 'edit_name', 'modified_name', 'edit_author_name', 'edited_by']) ||
+        undefined
     };
   }
 
@@ -340,6 +360,19 @@ export class MobiquoClient {
       ok: pickBool(s, ['result']),
       message: pickStr(s, ['result_text']) || undefined
     };
+  }
+
+  /**
+   * Ask the forum to build the reply-quote block for a post, via
+   * get_quote_post. The returned content is the post's raw BBCode already
+   * wrapped in the forum's native [quote …] attribution form (SMF's
+   * author/link/date, phpBB's post_id/time, …), so nested quotes keep whatever
+   * author metadata the forum itself preserves. Plugins without the method
+   * fault; callers fall back to building the quote locally.
+   */
+  async getQuotePost(postId: string): Promise<string> {
+    const s = asStruct(await this.call('get_quote_post', [postId]));
+    return pickStr(s, ['post_content', 'content', 'text_body']);
   }
 
   /**

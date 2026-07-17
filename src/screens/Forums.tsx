@@ -4,6 +4,7 @@ import { Header } from '../components/Header';
 import { LoadingScreen } from '../components/Spinner';
 import { updateSettings } from '../db/db';
 import { setActiveForumId } from '../lib/activeForum';
+import { t } from '../lib/i18n';
 import { hostOf } from '../lib/url';
 import { useForums } from '../hooks/useForums';
 import { useSettings } from '../hooks/useSettings';
@@ -30,10 +31,10 @@ export function Forums() {
   return (
     <div>
       <Header
-        title="Forums"
+        title={t('forums.title')}
         right={
           <button
-            aria-label="Add forum"
+            aria-label={t('forums.add')}
             onClick={() => navigate('/forums/add')}
             className="h-10 w-10 grid place-items-center rounded-full text-accent hover:bg-[rgb(var(--accent)/0.12)]"
           >
@@ -50,11 +51,8 @@ export function Forums() {
           className="mx-auto block w-full max-w-4xl text-left"
         >
           <div className="m-4 rounded-xl border border-accent/40 bg-[rgb(var(--accent)/0.08)] p-4">
-            <p className="text-sm font-medium text-ink">Set up your relay first</p>
-            <p className="text-xs text-ink-dim mt-1">
-              Forum Reader needs a small self-hosted relay to reach forums. Tap to
-              configure it in Settings.
-            </p>
+            <p className="text-sm font-medium text-ink">{t('forums.setupRelay')}</p>
+            <p className="text-xs text-ink-dim mt-1">{t('forums.setupRelayHint')}</p>
           </div>
         </button>
       )}
@@ -62,10 +60,8 @@ export function Forums() {
       <div className="mx-auto max-w-4xl p-4">
         {forums.length === 0 ? (
           <div className="text-center py-16 text-ink-dim">
-            <p className="font-medium text-ink">No forums yet</p>
-            <p className="text-sm mt-1">
-              Add a phpBB forum that has the Tapatalk plugin to get started.
-            </p>
+            <p className="font-medium text-ink">{t('forums.none')}</p>
+            <p className="text-sm mt-1">{t('forums.noneHint')}</p>
           </div>
         ) : (
           <ul className="space-y-2">
@@ -88,8 +84,8 @@ export function Forums() {
                   <button
                     aria-label={
                       settings.favoriteForumId === f.id
-                        ? 'Unset favorite'
-                        : 'Set as favorite'
+                        ? t('forums.favUnset')
+                        : t('forums.favSet')
                     }
                     onClick={(e) => toggleFavorite(e, f.id!)}
                     className="h-9 w-9 grid place-items-center rounded-full hover:bg-[rgb(var(--line)/0.6)]"

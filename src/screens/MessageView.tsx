@@ -8,6 +8,7 @@ import { TextArea } from '../components/Field';
 import { LoadingScreen, Spinner } from '../components/Spinner';
 import { getClient } from '../forum/connection';
 import { PostContent } from '../lib/bbcode';
+import { t } from '../lib/i18n';
 import { formatFull } from '../lib/time';
 import { goToProfile } from '../lib/profile';
 import { useAsync } from '../hooks/useAsync';
@@ -38,12 +39,12 @@ export function MessageView() {
       const client = await getClient(accountId);
       const subject = data.title.startsWith('Re:') ? data.title : `Re: ${data.title}`;
       const res = await client.sendMessage([data.from], subject, body);
-      if (!res.ok) throw new Error(res.message || 'The forum rejected the message.');
+      if (!res.ok) throw new Error(res.message || t('mv.rejected'));
       setSent(true);
       setReplyOpen(false);
       setBody('');
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Could not send.');
+      setSendError(err instanceof Error ? err.message : t('mv.couldNotSend'));
     } finally {
       setSending(false);
     }
@@ -53,9 +54,9 @@ export function MessageView() {
 
   return (
     <div>
-      <Header title={data?.title || 'Message'} back busy={loading} />
+      <Header title={data?.title || t('mv.message')} back busy={loading} />
       {error && <ErrorBanner message={error} onRetry={reload} />}
-      {loading && !data && <LoadingScreen label="Loading message…" />}
+      {loading && !data && <LoadingScreen label={t('mv.loading')} />}
 
       {data && (
         <div className="mx-auto max-w-4xl p-4 space-y-4">
@@ -63,7 +64,7 @@ export function MessageView() {
             <header className="flex items-center gap-2.5 p-3 border-b border-line">
               <button
                 type="button"
-                aria-label={`View ${data.from || 'member'}'s profile`}
+                aria-label={t('common.viewProfile', { name: data.from || t('common.member') })}
                 onClick={() => goToProfile(navigate, accountId, data.from)}
                 className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               >
@@ -75,10 +76,10 @@ export function MessageView() {
                   onClick={() => goToProfile(navigate, accountId, data.from)}
                   className="block max-w-full truncate text-sm font-medium text-left hover:text-accent transition-colors"
                 >
-                  {data.from || 'Member'}
+                  {data.from || t('common.member')}
                 </button>
                 <p className="text-xs text-ink-dim truncate">
-                  {data.to.length ? `to ${data.to.join(', ')}` : ''}
+                  {data.to.length ? t('mv.to', { names: data.to.join(', ') }) : ''}
                   {data.sentAt ? ` · ${formatFull(data.sentAt)}` : ''}
                 </p>
               </div>
@@ -89,31 +90,31 @@ export function MessageView() {
           </div>
 
           {sent && (
-            <p className="text-sm text-accent text-center">Reply sent.</p>
+            <p className="text-sm text-accent text-center">{t('mv.replySent')}</p>
           )}
 
           {replyOpen ? (
             <div className="rounded-2xl border border-line bg-surface-2 p-3 space-y-3">
               <TextArea
                 autoFocus
-                placeholder={`Reply to ${data.from}…`}
+                placeholder={t('mv.replyTo', { name: data.from })}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
               />
               {sendError && <p className="text-sm text-[rgb(255,107,107)]">{sendError}</p>}
               <div className="flex gap-2 justify-end">
                 <Button variant="ghost" size="sm" onClick={() => setReplyOpen(false)} disabled={sending}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button size="sm" onClick={sendReply} disabled={sending || !body.trim()}>
-                  {sending ? <Spinner /> : 'Send reply'}
+                  {sending ? <Spinner /> : t('mv.sendReply')}
                 </Button>
               </div>
             </div>
           ) : (
             <div className="flex gap-2">
               <Button variant="outline" full onClick={() => { setSent(false); setReplyOpen(true); }}>
-                Reply
+                {t('common.reply')}
               </Button>
               <Button
                 variant="ghost"
@@ -124,7 +125,7 @@ export function MessageView() {
                   })
                 }
               >
-                New message
+                {t('msgs.new')}
               </Button>
             </div>
           )}

@@ -4,6 +4,7 @@ import { ErrorBanner } from '../components/ErrorBanner';
 import { Header } from '../components/Header';
 import { LoadingScreen } from '../components/Spinner';
 import { getClient } from '../forum/connection';
+import { t } from '../lib/i18n';
 import { useAsync } from '../hooks/useAsync';
 
 /**
@@ -33,15 +34,15 @@ export function PostJump() {
   }, [data, forumId, navigate]);
 
   const failed =
-    error || (data && !data.topicId ? 'The forum could not locate the quoted post.' : null);
+    error || (data && !data.topicId ? t('jump.failed') : null);
 
   return (
     <div>
-      <Header title="Quoted post" back />
+      <Header title={t('jump.title')} back />
       {failed ? (
         <ErrorBanner message={failed} onRetry={reload} />
       ) : (
-        <LoadingScreen label="Locating post…" />
+        <LoadingScreen label={t('jump.locating')} />
       )}
     </div>
   );

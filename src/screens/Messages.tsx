@@ -4,6 +4,7 @@ import { Header } from '../components/Header';
 import { LoadingScreen } from '../components/Spinner';
 import { getClient } from '../forum/connection';
 import { setActiveForumId } from '../lib/activeForum';
+import { t } from '../lib/i18n';
 import { useAsync } from '../hooks/useAsync';
 import { useForum } from '../hooks/useForums';
 
@@ -22,13 +23,13 @@ export function Messages() {
   return (
     <div>
       <Header
-        title="Messages"
+        title={t('msgs.title')}
         subtitle={forum?.name}
         back
         busy={loading}
         right={
           <button
-            aria-label="New message"
+            aria-label={t('msgs.new')}
             onClick={() => navigate(`/f/${forumId}/compose`)}
             className="h-10 w-10 grid place-items-center rounded-full text-accent hover:bg-[rgb(var(--accent)/0.12)]"
           >
@@ -40,12 +41,12 @@ export function Messages() {
         }
       />
       {error && <ErrorBanner message={error} onRetry={reload} />}
-      {loading && !data && <LoadingScreen label="Loading messages…" />}
+      {loading && !data && <LoadingScreen label={t('msgs.loading')} />}
       {data && (
         <div className="mx-auto max-w-4xl p-4">
           {data.length === 0 ? (
             <p className="text-center text-ink-dim py-10 text-sm">
-              No message folders available.
+              {t('msgs.noFolders')}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -64,7 +65,9 @@ export function Messages() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium truncate">{box.title}</span>
-                      <span className="block text-xs text-ink-dim">{box.total} messages</span>
+                      <span className="block text-xs text-ink-dim">
+                        {box.total === 1 ? t('msgs.count.one') : t('msgs.count.many', { n: box.total })}
+                      </span>
                     </span>
                     {box.unreadCount > 0 && (
                       <span className="rounded-full bg-accent text-accent-contrast text-xs font-semibold px-2 py-0.5">

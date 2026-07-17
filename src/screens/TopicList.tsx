@@ -7,6 +7,7 @@ import { LoadingScreen } from '../components/Spinner';
 import { getClient } from '../forum/connection';
 import { cx } from '../lib/cx';
 import { readListPosition, saveListPosition } from '../lib/scrollMemory';
+import { t } from '../lib/i18n';
 import { formatWhen } from '../lib/time';
 import { useAsync } from '../hooks/useAsync';
 
@@ -103,46 +104,52 @@ export function TopicList() {
   return (
     <div>
       <Header
-        title={title || 'Topics'}
-        subtitle={total > 0 ? `${total} topics` : undefined}
+        title={title || t('topics.title')}
+        subtitle={
+          total > 0
+            ? total === 1
+              ? t('topics.count.one')
+              : t('topics.count.many', { n: total })
+            : undefined
+        }
         back
         busy={loading && topics.length > 0}
       />
       {error && !data && <ErrorBanner message={error} onRetry={reload} />}
-      {loading && !data && <LoadingScreen label="Loading topics…" />}
+      {loading && !data && <LoadingScreen label={t('topics.loading')} />}
 
       {data && (
         <div className="mx-auto max-w-4xl p-4">
           <ul className="space-y-2">
-            {topics.map((t) => (
-              <li key={t.id}>
+            {topics.map((topic) => (
+              <li key={topic.id}>
                 <button
                   onClick={() =>
-                    navigate(`/f/${forumId}/t/${t.id}`, {
+                    navigate(`/f/${forumId}/t/${topic.id}`, {
                       state: {
-                        title: t.title,
-                        hasNew: t.hasNew,
-                        replyCount: t.replyCount,
-                        unreadPosition: t.unreadPosition
+                        title: topic.title,
+                        hasNew: topic.hasNew,
+                        replyCount: topic.replyCount,
+                        unreadPosition: topic.unreadPosition
                       }
                     })
                   }
                   className="w-full flex items-start gap-3 rounded-2xl border border-line bg-surface-2 p-3 text-left hover:border-accent/50 transition-colors"
                 >
                   <span className="mt-0.5 shrink-0">
-                    {t.hasNew ? (
+                    {topic.hasNew ? (
                       <span
                         className="grid h-5 w-5 place-items-center rounded-full bg-accent text-accent-contrast"
-                        aria-label="Unread"
-                        title="Unread"
+                        aria-label={t('topics.unread')}
+                        title={t('topics.unread')}
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
                       </span>
                     ) : (
                       <span
                         className="grid h-5 w-5 place-items-center rounded-full border border-line text-ink-dim"
-                        aria-label="Read"
-                        title="Read"
+                        aria-label={t('topics.read')}
+                        title={t('topics.read')}
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                       </span>
@@ -150,14 +157,18 @@ export function TopicList() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
-                      {t.isSticky && <Badge>Pinned</Badge>}
-                      {t.isLocked && <Badge>Locked</Badge>}
-                      <span className={cx('line-clamp-2', t.hasNew ? 'font-semibold' : 'font-normal text-ink-dim')}>{t.title}</span>
+                      {topic.isSticky && <Badge>{t('topics.pinned')}</Badge>}
+                      {topic.isLocked && <Badge>{t('topics.locked')}</Badge>}
+                      <span className={cx('line-clamp-2', topic.hasNew ? 'font-semibold' : 'font-normal text-ink-dim')}>{topic.title}</span>
                     </span>
                     <span className="mt-0.5 block text-xs text-ink-dim truncate">
-                      {t.author}
-                      {t.lastReplyAt ? ` · ${formatWhen(t.lastReplyAt)}` : ''}
-                      {` · ${t.replyCount} replies`}
+                      {topic.author}
+                      {topic.lastReplyAt ? ` · ${formatWhen(topic.lastReplyAt)}` : ''}
+                      {` · ${
+                        topic.replyCount === 1
+                          ? t('topics.replies.one')
+                          : t('topics.replies.many', { n: topic.replyCount })
+                      }`}
                     </span>
                   </span>
                 </button>
@@ -170,7 +181,7 @@ export function TopicList() {
           )}
 
           {topics.length === 0 && !loading && (
-            <p className="text-center text-ink-dim py-10 text-sm">No topics here.</p>
+            <p className="text-center text-ink-dim py-10 text-sm">{t('topics.none')}</p>
           )}
 
           {/* Clear space behind the docked pager so the last row stays visible. */}

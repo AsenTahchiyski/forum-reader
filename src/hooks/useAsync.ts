@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { t } from '../lib/i18n';
 
 interface AsyncState<T> {
   data: T | null;
@@ -30,7 +31,7 @@ export function useAsync<T>(
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Something went wrong.');
+          setError(err instanceof Error ? err.message : t('common.somethingWrong'));
         }
       })
       .finally(() => {

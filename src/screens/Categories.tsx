@@ -5,6 +5,7 @@ import { LoadingScreen } from '../components/Spinner';
 import { getClient } from '../forum/connection';
 import type { ForumNode } from '../forum/types';
 import { setActiveForumId } from '../lib/activeForum';
+import { t } from '../lib/i18n';
 import { useAsync } from '../hooks/useAsync';
 import { useForum } from '../hooks/useForums';
 
@@ -27,13 +28,13 @@ export function Categories() {
   return (
     <div>
       <Header
-        title={forum?.name || 'Forum'}
+        title={forum?.name || t('common.forum')}
         back
         busy={loading}
         right={
           <>
             <button
-              aria-label="Search"
+              aria-label={t('cats.search')}
               onClick={() => navigate(`/f/${forumId}/search`)}
               className="h-10 w-10 grid place-items-center rounded-full text-ink hover:bg-[rgb(var(--line)/0.6)]"
             >
@@ -43,7 +44,7 @@ export function Categories() {
               </svg>
             </button>
             <button
-              aria-label="Messages"
+              aria-label={t('cats.messages')}
               onClick={() => navigate(`/f/${forumId}/pm`)}
               className="h-10 w-10 grid place-items-center rounded-full text-ink hover:bg-[rgb(var(--line)/0.6)]"
             >
@@ -55,7 +56,7 @@ export function Categories() {
         }
       />
       {error && <ErrorBanner message={error} onRetry={reload} />}
-      {loading && !data && <LoadingScreen label="Loading forums…" />}
+      {loading && !data && <LoadingScreen label={t('cats.loading')} />}
       {data && (
         <div className="mx-auto max-w-4xl p-4 space-y-5">
           <button
@@ -66,8 +67,8 @@ export function Categories() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block font-medium">New posts</span>
-              <span className="block text-xs text-ink-dim">Topics with unread replies</span>
+              <span className="block font-medium">{t('cats.newPosts')}</span>
+              <span className="block text-xs text-ink-dim">{t('cats.unreadReplies')}</span>
             </span>
             <svg className="text-ink-dim shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
           </button>

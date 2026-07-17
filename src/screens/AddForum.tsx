@@ -7,6 +7,7 @@ import { Spinner } from '../components/Spinner';
 import { addForum } from '../db/db';
 import { makeProbeClient } from '../forum/connection';
 import { setActiveForumId } from '../lib/activeForum';
+import { t } from '../lib/i18n';
 import { mobiquoCandidates, normalizeBaseUrl } from '../lib/url';
 import { encryptSecrets } from '../lib/vault';
 import { useSettings } from '../hooks/useSettings';
@@ -28,12 +29,12 @@ export function AddForum() {
   const submit = async () => {
     setError(null);
     if (!settings?.proxyBaseUrl) {
-      setError('Configure your relay URL in Settings before adding a forum.');
+      setError(t('add.configureRelay'));
       return;
     }
     const candidates = mobiquoCandidates(url);
     if (candidates.length === 0) {
-      setError('Enter a valid forum URL.');
+      setError(t('add.invalidUrl'));
       return;
     }
 
@@ -47,7 +48,7 @@ export function AddForum() {
           mobiquoUrl
         );
 
-        setStatus('Looking for the Tapatalk plugin…');
+        setStatus(t('add.probing'));
         let configName = '';
         let logoUrl: string | undefined;
         try {
@@ -55,23 +56,22 @@ export function AddForum() {
           configName = config.name;
           logoUrl = config.logoUrl;
         } catch {
-          lastError =
-            'No Tapatalk endpoint responded there. This forum may not have the plugin installed.';
+          lastError = t('add.noEndpoint');
           continue; // try the next candidate
         }
 
-        setStatus('Signing in…');
+        setStatus(t('add.signingIn'));
         const result = await client.login(username, password);
         if (!result.success) {
           // Right endpoint, wrong credentials — stop and report.
-          setError(result.error || 'Login failed. Check your username and password.');
+          setError(result.error || t('add.loginFailed'));
           return;
         }
 
-        setStatus('Saving…');
+        setStatus(t('add.saving'));
         const secrets = await encryptSecrets({ password });
         const id = await addForum({
-          name: name.trim() || configName || 'Forum',
+          name: name.trim() || configName || t('common.forum'),
           baseUrl: normalizeBaseUrl(url),
           mobiquoUrl,
           username,
@@ -82,9 +82,9 @@ export function AddForum() {
         navigate(`/f/${id}`, { replace: true });
         return;
       }
-      setError(lastError || 'Could not connect to that forum.');
+      setError(lastError || t('add.couldNotConnect'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not connect.');
+      setError(err instanceof Error ? err.message : t('add.couldNotConnectShort'));
     } finally {
       setBusy(false);
       setStatus('');
@@ -93,7 +93,7 @@ export function AddForum() {
 
   return (
     <div>
-      <Header title="Add forum" back />
+      <Header title={t('add.title')} back />
       <div className="mx-auto max-w-4xl p-4 space-y-4">
         <form
           className="space-y-4"
@@ -103,31 +103,31 @@ export function AddForum() {
           }}
         >
           <Field
-            label="Forum URL"
+            label={t('add.url')}
             placeholder="https://forum.example.com"
-            hint="The board's web address. We'll look for /mobiquo/mobiquo.php."
+            hint={t('add.urlHint')}
             inputMode="url"
             autoCapitalize="none"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
           />
           <Field
-            label="Username"
+            label={t('add.username')}
             autoCapitalize="none"
             autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
           <Field
-            label="Password"
+            label={t('add.password')}
             type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <Field
-            label="Display name (optional)"
-            placeholder="Leave blank to use the forum's name"
+            label={t('add.displayName')}
+            placeholder={t('add.displayNamePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -141,16 +141,13 @@ export function AddForum() {
           <Button full size="lg" type="submit" disabled={!canSubmit}>
             {busy ? (
               <>
-                <Spinner /> {status || 'Connecting…'}
+                <Spinner /> {status || t('add.connecting')}
               </>
             ) : (
-              'Connect & save'
+              t('add.connect')
             )}
           </Button>
-          <p className="text-xs text-ink-dim text-center">
-            Your password is encrypted on this device and only sent to your own
-            forum through your own relay.
-          </p>
+          <p className="text-xs text-ink-dim text-center">{t('add.privacyNote')}</p>
         </form>
       </div>
     </div>

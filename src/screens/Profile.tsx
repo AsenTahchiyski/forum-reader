@@ -7,6 +7,7 @@ import { Header } from '../components/Header';
 import { LoadingScreen } from '../components/Spinner';
 import { getClient } from '../forum/connection';
 import { PostContent } from '../lib/bbcode';
+import { t } from '../lib/i18n';
 import { formatFull, formatWhen } from '../lib/time';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
@@ -50,13 +51,13 @@ export function Profile() {
   }, [data]);
 
   const showMedia = settings?.showMedia ?? true;
-  const name = data?.displayName || data?.username || username || 'Member';
+  const name = data?.displayName || data?.username || username || t('common.member');
 
   return (
     <div className="pb-2">
       <Header title={name} back busy={loading && !!data} />
       {error && !data && <ErrorBanner message={error} onRetry={reload} />}
-      {loading && !data && <LoadingScreen label="Loading profile…" />}
+      {loading && !data && <LoadingScreen label={t('profile.loading')} />}
 
       {data && (
         <div className="mx-auto max-w-4xl p-4 space-y-4">
@@ -74,7 +75,9 @@ export function Profile() {
                     (data.isOnline ? 'bg-accent' : 'bg-[rgb(var(--line))]')
                   }
                 />
-                <span className="text-ink-dim">{data.isOnline ? 'Online' : 'Offline'}</span>
+                <span className="text-ink-dim">
+                  {data.isOnline ? t('profile.online') : t('profile.offline')}
+                </span>
               </p>
             </div>
           </div>
@@ -82,13 +85,13 @@ export function Profile() {
           {(data.postCount != null || data.registeredAt || data.lastActivityAt) && (
             <div className="grid grid-cols-2 gap-2">
               {data.postCount != null && (
-                <Stat label="Posts" value={data.postCount.toLocaleString()} />
+                <Stat label={t('profile.posts')} value={data.postCount.toLocaleString()} />
               )}
               {data.registeredAt && (
-                <Stat label="Joined" value={formatFull(data.registeredAt)} />
+                <Stat label={t('profile.joined')} value={formatFull(data.registeredAt)} />
               )}
               {data.lastActivityAt && (
-                <Stat label="Last seen" value={formatWhen(data.lastActivityAt)} />
+                <Stat label={t('profile.lastSeen')} value={formatWhen(data.lastActivityAt)} />
               )}
             </div>
           )}
@@ -106,7 +109,7 @@ export function Profile() {
 
           {data.signature && (
             <div>
-              <p className="text-xs text-ink-dim mb-1.5">Signature</p>
+              <p className="text-xs text-ink-dim mb-1.5">{t('profile.signature')}</p>
               <div className="rounded-2xl border border-line bg-surface-2 p-3 text-sm">
                 <PostContent content={data.signature} showMedia={showMedia} />
               </div>
@@ -123,7 +126,7 @@ export function Profile() {
                 })
               }
             >
-              Send message
+              {t('profile.sendMessage')}
             </Button>
           )}
 

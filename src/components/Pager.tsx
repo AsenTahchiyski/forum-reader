@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { cx } from '../lib/cx';
+import { t } from '../lib/i18n';
 import { Button } from './Button';
 import { Field } from './Field';
 import { Modal } from './Modal';
@@ -34,10 +35,10 @@ export function Pager({ page, pageCount, onChange, disabled, dock }: Props) {
 
   const controls = (
     <div className="flex items-center justify-center gap-1.5">
-      <PagerBtn label="First page" onClick={() => go(0)} disabled={disabled || atStart}>
+      <PagerBtn label={t('pager.first')} onClick={() => go(0)} disabled={disabled || atStart}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 18l-6-6 6-6M19 18l-6-6 6-6" /></svg>
       </PagerBtn>
-      <PagerBtn label="Previous page" onClick={() => go(page - 1)} disabled={disabled || atStart}>
+      <PagerBtn label={t('pager.prev')} onClick={() => go(page - 1)} disabled={disabled || atStart}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
       </PagerBtn>
 
@@ -52,17 +53,17 @@ export function Pager({ page, pageCount, onChange, disabled, dock }: Props) {
         {page + 1} <span className="text-ink-dim">/ {pageCount}</span>
       </button>
 
-      <PagerBtn label="Next page" onClick={() => go(page + 1)} disabled={disabled || atEnd}>
+      <PagerBtn label={t('pager.next')} onClick={() => go(page + 1)} disabled={disabled || atEnd}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
       </PagerBtn>
-      <PagerBtn label="Last page" onClick={() => go(pageCount - 1)} disabled={disabled || atEnd}>
+      <PagerBtn label={t('pager.last')} onClick={() => go(pageCount - 1)} disabled={disabled || atEnd}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 18l6-6-6-6M5 18l6-6-6-6" /></svg>
       </PagerBtn>
     </div>
   );
 
   const jumpModal = (
-    <Modal open={jumpOpen} onClose={() => setJumpOpen(false)} title="Jump to page">
+    <Modal open={jumpOpen} onClose={() => setJumpOpen(false)} title={t('pager.jump')}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -81,10 +82,10 @@ export function Pager({ page, pageCount, onChange, disabled, dock }: Props) {
           />
           <div className="flex gap-2 justify-end">
             <Button variant="ghost" size="sm" type="button" onClick={() => setJumpOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button size="sm" type="submit">
-              Go
+              {t('pager.go')}
             </Button>
           </div>
         </form>

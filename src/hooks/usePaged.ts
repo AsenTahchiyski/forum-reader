@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { t } from '../lib/i18n';
 
 interface Paged<T> {
   items: T[];
@@ -61,7 +62,7 @@ export function usePaged<T>(
         setDone(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load.');
+      setError(err instanceof Error ? err.message : t('common.failedToLoad'));
     } finally {
       busyRef.current = false;
       setLoading(false);

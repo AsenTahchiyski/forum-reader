@@ -1,4 +1,5 @@
 import { cx } from '../lib/cx';
+import { t } from '../lib/i18n';
 
 export function Spinner({ className }: { className?: string }) {
   return (
@@ -8,7 +9,7 @@ export function Spinner({ className }: { className?: string }) {
         className
       )}
       role="status"
-      aria-label="Loading"
+      aria-label={t('common.loadingAria')}
     />
   );
 }

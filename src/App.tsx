@@ -8,6 +8,7 @@ import {
 import { LoadingScreen } from './components/Spinner';
 import { TabBar } from './components/TabBar';
 import { getActiveForumId } from './lib/activeForum';
+import { defaultLang, setLang, useLang } from './lib/i18n';
 import { ensureUnlocked } from './lib/vault';
 import { ThemeProvider } from './theme/ThemeProvider';
 import { useForums } from './hooks/useForums';
@@ -33,6 +34,13 @@ export function App() {
   const settings = useSettings();
   const unlocked = useVaultUnlocked();
   const [booted, setBooted] = useState(false);
+
+  // Subscribing here re-renders the whole tree when the language changes, so
+  // every t() call re-evaluates without each screen tracking it.
+  useLang();
+  useEffect(() => {
+    if (settings) setLang(settings.language ?? defaultLang());
+  }, [settings, settings?.language]);
 
   // On boot, load (or first-run create) the stored key — no prompt. Only a
   // legacy locked vault stays locked, and the Lock screen converts it after

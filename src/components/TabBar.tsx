@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getActiveForumId } from '../lib/activeForum';
 import { cx } from '../lib/cx';
+import { t } from '../lib/i18n';
 
 type TabId = 'forums' | 'messages' | 'settings';
 
@@ -26,11 +27,12 @@ const ICONS: Record<TabId, React.ReactNode> = {
   )
 };
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'forums', label: 'Forums' },
-  { id: 'messages', label: 'Messages' },
-  { id: 'settings', label: 'Settings' }
-];
+const TABS: TabId[] = ['forums', 'messages', 'settings'];
+const TAB_LABELS = {
+  forums: 'tabs.forums',
+  messages: 'tabs.messages',
+  settings: 'tabs.settings'
+} as const;
 
 export function TabBar() {
   const navigate = useNavigate();
@@ -54,11 +56,11 @@ export function TabBar() {
       <div className="mx-auto max-w-md px-3 pb-3">
         <div className="glass border border-line rounded-2xl shadow-[0_-2px_30px_-10px_rgb(0_0_0/0.2)] flex">
           {TABS.map((tab) => {
-            const isActive = active === tab.id;
+            const isActive = active === tab;
             return (
               <button
-                key={tab.id}
-                onClick={() => go(tab.id)}
+                key={tab}
+                onClick={() => go(tab)}
                 className={cx(
                   'relative flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium',
                   isActive ? 'text-accent' : 'text-ink-dim'
@@ -72,8 +74,8 @@ export function TabBar() {
                     transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                   />
                 )}
-                <span className="relative">{ICONS[tab.id]}</span>
-                <span className="relative">{tab.label}</span>
+                <span className="relative">{ICONS[tab]}</span>
+                <span className="relative">{t(TAB_LABELS[tab])}</span>
               </button>
             );
           })}

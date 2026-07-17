@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { t } from '../lib/i18n';
 import { Spinner } from './Spinner';
 
 interface Props {
@@ -19,7 +20,7 @@ export function Header({ title, subtitle, back, onBack, right, busy }: Props) {
       <div className="mx-auto max-w-4xl flex items-center gap-1 h-14 px-2">
         {back && (
           <button
-            aria-label="Back"
+            aria-label={t('common.back')}
             onClick={() => (onBack ? onBack() : navigate(-1))}
             className="h-10 w-10 grid place-items-center rounded-full text-ink hover:bg-[rgb(var(--line)/0.6)]"
           >

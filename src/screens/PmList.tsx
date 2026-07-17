@@ -7,6 +7,7 @@ import { Header } from '../components/Header';
 import { LoadingScreen, Spinner } from '../components/Spinner';
 import { getClient } from '../forum/connection';
 import type { PmSummary } from '../forum/types';
+import { t } from '../lib/i18n';
 import { formatWhen } from '../lib/time';
 import { usePaged } from '../hooks/usePaged';
 
@@ -28,9 +29,9 @@ export function PmList() {
 
   return (
     <div>
-      <Header title={title || 'Messages'} back busy={loading && items.length > 0} />
+      <Header title={title || t('msgs.title')} back busy={loading && items.length > 0} />
       {error && items.length === 0 && <ErrorBanner message={error} onRetry={reload} />}
-      {loading && items.length === 0 && <LoadingScreen label="Loading…" />}
+      {loading && items.length === 0 && <LoadingScreen label={t('common.loading')} />}
 
       <div className="mx-auto max-w-4xl p-4">
         <ul className="space-y-2">
@@ -49,7 +50,7 @@ export function PmList() {
                   <span className="flex items-center gap-1.5">
                     {m.isUnread && <span className="h-2 w-2 rounded-full bg-accent shrink-0" />}
                     <span className={`truncate ${m.isUnread ? 'font-semibold' : 'font-medium'}`}>
-                      {m.title || '(no subject)'}
+                      {m.title || t('common.noSubject')}
                     </span>
                   </span>
                   <span className="block text-xs text-ink-dim truncate">
@@ -70,12 +71,12 @@ export function PmList() {
         {!done && items.length > 0 && (
           <div className="py-4 flex justify-center">
             <Button variant="outline" onClick={loadMore} disabled={loading}>
-              {loading ? <Spinner /> : 'Load more'}
+              {loading ? <Spinner /> : t('common.loadMore')}
             </Button>
           </div>
         )}
         {done && items.length === 0 && !loading && (
-          <p className="text-center text-ink-dim py-10 text-sm">This folder is empty.</p>
+          <p className="text-center text-ink-dim py-10 text-sm">{t('pm.empty')}</p>
         )}
       </div>
     </div>

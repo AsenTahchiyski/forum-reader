@@ -1,3 +1,5 @@
+import type { Lang } from '../lib/i18n';
+
 export type ThemeMode = 'system' | 'light' | 'dark';
 
 /**
@@ -31,6 +33,8 @@ export interface Settings {
   relayToken: string;
   /** Render images / YouTube embeds inline in posts. */
   showMedia: boolean;
+  /** UI language; unset means "follow the browser". */
+  language?: Lang;
   onboarded: boolean;
   createdAt: number;
   updatedAt: number;

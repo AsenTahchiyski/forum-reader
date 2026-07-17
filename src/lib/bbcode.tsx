@@ -6,6 +6,7 @@
  */
 import DOMPurify from 'dompurify';
 import { useEffect, useMemo, useRef } from 'react';
+import { t, useLang } from './i18n';
 import { formatEpoch, parseForumDate } from './time';
 
 function escapeHtml(s: string): string {
@@ -39,12 +40,15 @@ const looksLikeHtml = (s: string) => /<\/?[a-z][\s\S]*>/i.test(s);
 const hasBBCode = (s: string) => /\[[a-z*][^\]]*\]/i.test(s);
 
 /**
- * Build a BBCode [quote] block from a post for the reply composer. The stored
- * content may be HTML or BBCode; we flatten it to plain text (dropping nested
- * markup and quote attributions so a quoted post collapses into a single
- * quote by its own author) and wrap it in [quote=Author …] the forum will
- * re-render. When the post's id/time are known they're included in phpBB's
- * `post_id=`/`time=` attribute form so the quote can link back to the post.
+ * Build a BBCode [quote] block from a post for the reply composer, as a
+ * fallback when the forum's get_quote_post isn't available. The stored content
+ * may be HTML or BBCode; we flatten it to plain text — except nested quotes,
+ * which keep their [quote=Author …] attribution (BBCode) or are rebuilt as
+ * [quote] blocks with the cite line as text (HTML), so quoting a post that
+ * itself quotes someone doesn't lose the original author and timestamp. The
+ * whole thing is wrapped in [quote=Author …] the forum will re-render. When
+ * the post's id/time are known they're included in phpBB's `post_id=`/`time=`
+ * attribute form so the quote can link back to the post.
  */
 export function quotePost(
   author: string,
@@ -52,13 +56,18 @@ export function quotePost(
   meta?: { postId?: string; postTime?: string }
 ): string {
   const text = content
-    // Nested quotes merge into this one: drop their attribution lines
-    // (author, timestamp, post link) so only their text remains.
-    .replace(/<cite[^>]*>[\s\S]*?<\/cite>/gi, '')
+    // Nested HTML quotes: keep the attribution as a plain text line and turn
+    // the blockquote back into a [quote] pair the forum will re-render.
+    .replace(
+      /<cite[^>]*>([\s\S]*?)<\/cite>/gi,
+      (_m, inner: string) => `${inner.replace(/<[^>]+>/g, '').trim()}\n`
+    )
+    .replace(/<blockquote[^>]*>/gi, '[quote]\n')
+    .replace(/<\/blockquote>/gi, '\n[/quote]\n')
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(?:p|div|blockquote|li|h[1-6])>/gi, '\n')
+    .replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n')
     .replace(/<[^>]+>/g, '') // strip remaining HTML tags
-    .replace(/\[\/?[^\]]+\]/g, '') // strip BBCode tags (incl. nested quotes)
+    .replace(/\[(?!\/?quote\b)[^\]]*\]/g, '') // strip BBCode tags except nested quotes
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
@@ -143,15 +152,28 @@ function replaceSmilies(html: string): string {
  *   [quote name="Bob" time=…]               → Bob + time
  *   [quote author="Bob" …]                  → Bob
  *   [quote=Bob post_id=9 time=5 user_id=3]  → Bob + post id + time (phpBB 3.2+)
+ *   [quote author=Jo Doe link=topic=8.msg42#msg42 date=5]
+ *                                           → Jo Doe + post id + time (SMF;
+ *                                             link=msg=42 is the 2.1 form)
  * `who` is '' for attribute-only tags (e.g. just time=…); the cite then falls
  * back to the timestamp alone.
  */
 function quoteMeta(attr: string): { who: string; postId: string; time: number } {
-  const postId = attr.match(/(?:^|\s)post_id\s*=\s*(?:&quot;|")?(\d+)/i)?.[1] ?? '';
-  const time = Number(attr.match(/(?:^|\s)time\s*=\s*(?:&quot;|")?(\d+)/i)?.[1] ?? 0);
+  const postId =
+    attr.match(/(?:^|\s)post_id\s*=\s*(?:&quot;|")?(\d+)/i)?.[1] ??
+    // SMF link= attribute; the msg number is the post id.
+    attr.match(/(?:^|\s)link\s*=\s*(?:&quot;|")?[^\s\]]*?msg=?(\d+)/i)?.[1] ??
+    '';
+  const time = Number(
+    attr.match(/(?:^|\s)(?:time|date)\s*=\s*(?:&quot;|")?(\d+)/i)?.[1] ?? 0
+  );
 
   let who = '';
-  const named = attr.match(/(?:^|\s)(?:name|author)\s*=\s*(?:&quot;|")?([^&";\]]+)/i);
+  // The unquoted value (SMF allows spaces in it: author=Jo Doe link=…) runs
+  // until the next attribute, a closing quote, or the end.
+  const named = attr.match(
+    /(?:^|\s)(?:name|author)\s*=\s*(?:&quot;|")?(.+?)(?=\s+\w+\s*=|\s*(?:&quot;|")|$)/i
+  );
   const quoted = attr.match(/^(?:&quot;|")([\s\S]+?)(?:&quot;|")/); // "Bob" post_id=…
   const bare = attr.match(/^(.+?)\s+\w+\s*=/); // Bob post_id=…
   if (named) who = named[1].trim();
@@ -180,8 +202,8 @@ function expandSpoilers(s: string): string {
     prev = s;
     s = s.replace(INNER, (_m, tag, attr, body) => {
       const label = /^spoiler$/i.test(tag)
-        ? (attr || '').replace(/^(?:&quot;|")|(?:&quot;|")$/g, '').trim() || 'Spoiler'
-        : 'Hidden content';
+        ? (attr || '').replace(/^(?:&quot;|")|(?:&quot;|")$/g, '').trim() || t('spoiler.label')
+        : t('spoiler.hidden');
       return (
         `<details class="spoiler"><summary class="spoiler-label">${label}</summary>` +
         `<div class="spoiler-body">${body}</div></details>`
@@ -213,7 +235,11 @@ function expandQuotes(s: string, forumId?: string): string {
     s = s.replace(INNER, (_m, attr, body) => {
       const { who, postId, time } = quoteMeta(attr || '');
       const when = time ? formatEpoch(time) : '';
-      const label = who ? `${who} wrote:${when ? ` ${when}` : ''}` : when;
+      const label = who
+        ? when
+          ? t('quote.byAt', { who, when })
+          : t('quote.by', { who })
+        : when;
       const cite = !label
         ? ''
         : postId && forumId
@@ -336,9 +362,11 @@ interface Props {
 }
 
 export function PostContent({ content, showMedia, forumId }: Props) {
+  // Cite/spoiler labels depend on the active language, so it's a memo input.
+  const lang = useLang();
   const html = useMemo(
     () => buildHtml(content, showMedia, forumId),
-    [content, showMedia, forumId]
+    [content, showMedia, forumId, lang]
   );
   const ref = useRef<HTMLDivElement>(null);
 

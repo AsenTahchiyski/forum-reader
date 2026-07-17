@@ -3,12 +3,14 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { FormatBar } from '../components/FormatBar';
 import { Header } from '../components/Header';
 import { TextArea } from '../components/Field';
 import { LoadingScreen, Spinner } from '../components/Spinner';
 import { Pager } from '../components/Pager';
 import { getClient } from '../forum/connection';
 import { PostContent, quotePost } from '../lib/bbcode';
+import { t } from '../lib/i18n';
 import { formatWhen } from '../lib/time';
 import { goToProfile } from '../lib/profile';
 import { useAsync } from '../hooks/useAsync';
@@ -107,11 +109,22 @@ export function Thread() {
   const [editError, setEditError] = useState<string | null>(null);
   const [edited, setEdited] = useState<Record<string, string>>({});
   const editSubject = useRef('');
+  const editRef = useRef<HTMLTextAreaElement>(null);
 
   // Drop the post's text into the composer as a [quote] block, opening it if
-  // needed and appending when the user is already drafting.
-  const quote = (author: string, content: string, postId: string, postTime?: string) => {
-    const block = quotePost(author, content, { postId, postTime });
+  // needed and appending when the user is already drafting. The forum builds
+  // the block (get_quote_post) so nested quotes keep their native attribution;
+  // plugins without the method fall back to flattening the post locally.
+  const quote = async (author: string, content: string, postId: string, postTime?: string) => {
+    let block = '';
+    try {
+      const client = await getClient(accountId);
+      block = (await client.getQuotePost(postId)).trim();
+      if (block) block = `${block}\n\n`;
+    } catch {
+      // fall back below
+    }
+    if (!block) block = quotePost(author, content, { postId, postTime });
     setBody((b) => (b.trim() ? `${b.trimEnd()}\n\n${block}` : block));
     setReplyOpen(true);
     requestAnimationFrame(() => {
@@ -226,14 +239,14 @@ export function Thread() {
     try {
       const client = await getClient(accountId);
       const res = await client.replyToTopic(data?.forumId || '', topicId!, '', body);
-      if (!res.ok) throw new Error(res.message || 'The forum rejected the reply.');
+      if (!res.ok) throw new Error(res.message || t('thread.rejectedReply'));
       setBody('');
       setReplyOpen(false);
       const last = pageCount - 1;
       if (page === last) reload();
       else setPage(last);
     } catch (err) {
-      setPostError(err instanceof Error ? err.message : 'Could not post.');
+      setPostError(err instanceof Error ? err.message : t('thread.couldNotPost'));
     } finally {
       setPosting(false);
     }
@@ -250,11 +263,11 @@ export function Thread() {
     try {
       const client = await getClient(accountId);
       const res = await client.getRawPost(postId);
-      if (!res.ok) throw new Error(res.error || 'This post can no longer be edited.');
+      if (!res.ok) throw new Error(res.error || t('thread.cantEdit'));
       editSubject.current = res.subject;
       setEditBody(res.content);
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Could not load the post.');
+      setEditError(err instanceof Error ? err.message : t('thread.couldNotLoadPost'));
     } finally {
       setEditLoading(false);
     }
@@ -273,7 +286,7 @@ export function Thread() {
     try {
       const client = await getClient(accountId);
       const res = await client.saveRawPost(postId, editSubject.current, editBody);
-      if (!res.ok) throw new Error(res.message || 'The forum rejected the edit.');
+      if (!res.ok) throw new Error(res.message || t('thread.rejectedEdit'));
       if (res.content) {
         // Update the rendered post in place; keeps the reader's scroll position.
         setEdited((m) => ({ ...m, [postId]: res.content! }));
@@ -283,7 +296,7 @@ export function Thread() {
       }
       cancelEdit();
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Could not save.');
+      setEditError(err instanceof Error ? err.message : t('thread.couldNotSave'));
     } finally {
       setEditSaving(false);
     }
@@ -294,9 +307,9 @@ export function Thread() {
 
   return (
     <div className="pb-2">
-      <Header title={st.title || data?.title || 'Topic'} back busy={loading && posts.length > 0} />
+      <Header title={st.title || data?.title || t('thread.topic')} back busy={loading && posts.length > 0} />
       {error && !data && <ErrorBanner message={error} onRetry={reload} />}
-      {loading && !data && <LoadingScreen label="Loading posts…" />}
+      {loading && !data && <LoadingScreen label={t('thread.loadingPosts')} />}
 
       {data && (
         <div className="mx-auto max-w-4xl p-4">
@@ -312,7 +325,7 @@ export function Thread() {
                   <header className="flex items-center gap-2.5 p-3 border-b border-line">
                     <button
                       type="button"
-                      aria-label={`View ${post.author || 'member'}'s profile`}
+                      aria-label={t('common.viewProfile', { name: post.author || t('common.member') })}
                       onClick={() => goToProfile(navigate, accountId, post.author, post.authorId)}
                       className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                     >
@@ -324,7 +337,7 @@ export function Thread() {
                         onClick={() => goToProfile(navigate, accountId, post.author, post.authorId)}
                         className="block max-w-full truncate text-sm font-medium text-left hover:text-accent transition-colors"
                       >
-                        {post.author || 'Member'}
+                        {post.author || t('common.member')}
                       </button>
                       {post.postTime && (
                         <p className="text-xs text-ink-dim">{formatWhen(post.postTime)}</p>
@@ -340,9 +353,11 @@ export function Thread() {
                         </div>
                       ) : (
                         <div className="space-y-3">
+                          <FormatBar textareaRef={editRef} value={editBody} onChange={setEditBody} />
                           <TextArea
+                            ref={editRef}
                             autoFocus
-                            placeholder="Edit your post…"
+                            placeholder={t('thread.editPlaceholder')}
                             value={editBody}
                             onChange={(e) => setEditBody(e.target.value)}
                           />
@@ -351,24 +366,36 @@ export function Thread() {
                           )}
                           <div className="flex gap-2 justify-end">
                             <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={editSaving}>
-                              Cancel
+                              {t('common.cancel')}
                             </Button>
                             <Button
                               size="sm"
                               onClick={() => saveEdit(post.id)}
                               disabled={editSaving || !editBody.trim()}
                             >
-                              {editSaving ? <Spinner /> : 'Save'}
+                              {editSaving ? <Spinner /> : t('common.save')}
                             </Button>
                           </div>
                         </div>
                       )
                     ) : (
-                      <PostContent
-                        content={edited[post.id] ?? post.content}
-                        showMedia={showMedia}
-                        forumId={forumId}
-                      />
+                      <>
+                        <PostContent
+                          content={edited[post.id] ?? post.content}
+                          showMedia={showMedia}
+                          forumId={forumId}
+                        />
+                        {post.editTime && (
+                          <p className="mt-2 text-xs italic text-ink-dim">
+                            {post.editAuthor
+                              ? t('post.lastEditBy', {
+                                  when: formatWhen(post.editTime),
+                                  who: post.editAuthor
+                                })
+                              : t('post.lastEdit', { when: formatWhen(post.editTime) })}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                   {editingId !== post.id && (data.canReply || post.canEdit) && (
@@ -379,7 +406,7 @@ export function Thread() {
                           onClick={() => startEdit(post.id)}
                           className="text-xs font-medium text-ink-dim hover:text-accent transition-colors"
                         >
-                          Edit
+                          {t('thread.edit')}
                         </button>
                       )}
                       {data.canReply && (
@@ -390,7 +417,7 @@ export function Thread() {
                           }
                           className="text-xs font-medium text-ink-dim hover:text-accent transition-colors"
                         >
-                          Quote
+                          {t('thread.quote')}
                         </button>
                       )}
                     </footer>
@@ -409,26 +436,27 @@ export function Thread() {
             <div className="mt-4">
               {replyOpen ? (
                 <div className="rounded-2xl border border-line bg-surface-2 p-3 space-y-3">
+                  <FormatBar textareaRef={replyRef} value={body} onChange={setBody} />
                   <TextArea
                     ref={replyRef}
                     autoFocus
-                    placeholder="Write a reply…"
+                    placeholder={t('thread.replyPlaceholder')}
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                   />
                   {postError && <p className="text-sm text-[rgb(255,107,107)]">{postError}</p>}
                   <div className="flex gap-2 justify-end">
                     <Button variant="ghost" size="sm" onClick={() => setReplyOpen(false)} disabled={posting}>
-                      Cancel
+                      {t('common.cancel')}
                     </Button>
                     <Button size="sm" onClick={submitReply} disabled={posting || !body.trim()}>
-                      {posting ? <Spinner /> : 'Post reply'}
+                      {posting ? <Spinner /> : t('thread.postReply')}
                     </Button>
                   </div>
                 </div>
               ) : (
                 <Button full variant="outline" onClick={() => setReplyOpen(true)}>
-                  Reply
+                  {t('common.reply')}
                 </Button>
               )}
             </div>

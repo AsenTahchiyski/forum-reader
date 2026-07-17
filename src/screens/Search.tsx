@@ -6,15 +6,30 @@ import { Field } from '../components/Field';
 import { Header } from '../components/Header';
 import { LoadingScreen, Spinner } from '../components/Spinner';
 import { getClient } from '../forum/connection';
+import type { ForumNode } from '../forum/types';
+import { t } from '../lib/i18n';
 import { formatWhen } from '../lib/time';
+import { useAsync } from '../hooks/useAsync';
 import { usePaged } from '../hooks/usePaged';
 
-// Last committed query per forum, and the Tapatalk search_id that pins each
-// (forum, query) result set. Both are module-level so they survive the Search
-// screen unmounting when a result is opened — paired with usePaged's cache,
-// going back restores the results without re-running the search.
+// Last committed query/section per forum, and the Tapatalk search_id that pins
+// each (forum, section, query) result set. All module-level so they survive the
+// Search screen unmounting when a result is opened — paired with usePaged's
+// cache, going back restores the results without re-running the search.
 const lastQuery = new Map<number, string>();
+const lastSection = new Map<number, string>();
 const searchIds = new Map<string, string | undefined>();
+
+/** The board tree as flat <option> rows; categories become disabled headers. */
+function flattenTree(
+  nodes: ForumNode[],
+  depth = 0
+): { id: string; title: string; depth: number; isCategory: boolean }[] {
+  return nodes.flatMap((n) => [
+    { id: n.id, title: n.title, depth, isCategory: n.isCategory },
+    ...flattenTree(n.children, depth + 1)
+  ]);
+}
 
 export function Search() {
   const navigate = useNavigate();
@@ -25,8 +40,18 @@ export function Search() {
   // last search for this forum so reopening Search shows it again.
   const [term, setTerm] = useState(() => lastQuery.get(forumId) ?? '');
   const [query, setQuery] = useState(() => lastQuery.get(forumId) ?? '');
+  // Board section to search in ('' = everywhere). Changing it re-runs the
+  // current committed query directly — no need to press Search again.
+  const [section, setSection] = useState(() => lastSection.get(forumId) ?? '');
 
-  const cacheKey = `${forumId}:${query}`;
+  // Board tree for the section picker; loads once per forum in the background.
+  const { data: tree } = useAsync(async () => {
+    const client = await getClient(forumId);
+    return client.getForums();
+  }, [forumId]);
+  const sections = tree ? flattenTree(tree) : [];
+
+  const cacheKey = `${forumId}:${section}:${query}`;
 
   const { items, loading, error, done, loadMore, reload } = usePaged(
     async (start, end) => {
@@ -34,11 +59,17 @@ export function Search() {
       // Reset the pinned search_id when a fresh search starts (start === 0).
       if (start === 0) searchIds.delete(cacheKey);
       const client = await getClient(forumId);
-      const res = await client.search(query, start, end, searchIds.get(cacheKey));
+      const res = await client.search(
+        query,
+        start,
+        end,
+        searchIds.get(cacheKey),
+        section || undefined
+      );
       if (res.searchId) searchIds.set(cacheKey, res.searchId);
       return res.topics;
     },
-    [forumId, query],
+    [forumId, query, section],
     20,
     cacheKey
   );
@@ -54,22 +85,39 @@ export function Search() {
 
   return (
     <div>
-      <Header title="Search" back busy={loading && items.length > 0} />
+      <Header title={t('search.title')} back busy={loading && items.length > 0} />
 
       <div className="mx-auto max-w-4xl p-4">
         <form onSubmit={submit} className="flex gap-2">
           <Field
             autoFocus
             type="search"
-            placeholder="Search topics and posts…"
+            placeholder={t('search.placeholder')}
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             className="flex-1"
           />
           <Button type="submit" disabled={!term.trim()}>
-            Search
+            {t('search.button')}
           </Button>
         </form>
+
+        <select
+          aria-label={t('search.sectionAria')}
+          value={section}
+          onChange={(e) => {
+            setSection(e.target.value);
+            lastSection.set(forumId, e.target.value);
+          }}
+          className="mt-2 w-full h-11 px-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/40 transition-colors"
+        >
+          <option value="">{t('search.allSections')}</option>
+          {sections.map((s) => (
+            <option key={s.id} value={s.id} disabled={s.isCategory}>
+              {' '.repeat(s.depth) + s.title}
+            </option>
+          ))}
+        </select>
 
         {error && items.length === 0 && (
           <div className="mt-4">
@@ -78,18 +126,18 @@ export function Search() {
         )}
 
         {searched && loading && items.length === 0 && (
-          <LoadingScreen label="Searching…" />
+          <LoadingScreen label={t('search.searching')} />
         )}
 
         {!searched && (
           <p className="text-center text-ink-dim py-16 text-sm">
-            Enter a term to search this forum.
+            {t('search.prompt')}
           </p>
         )}
 
         {searched && done && items.length === 0 && !loading && !error && (
           <p className="text-center text-ink-dim py-16 text-sm">
-            No results for “{query}”.
+            {t('search.noResults', { q: query })}
           </p>
         )}
 
@@ -127,7 +175,7 @@ export function Search() {
         {!done && items.length > 0 && (
           <div className="mt-4">
             <Button full variant="outline" onClick={loadMore} disabled={loading}>
-              {loading ? <Spinner /> : 'Load more'}
+              {loading ? <Spinner /> : t('common.loadMore')}
             </Button>
           </div>
         )}
