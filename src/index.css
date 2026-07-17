@@ -130,6 +130,10 @@ textarea {
   border-radius: 0 8px 8px 0;
   color: rgb(var(--ink-dim));
 }
+/* Cite line ("Цитат на: … в …") small like the last-edit note. */
+.post-content blockquote cite {
+  font-size: 0.75rem;
+}
 .post-content details.spoiler {
   margin: 0.5rem 0;
   border: 1px dashed rgb(var(--line));
