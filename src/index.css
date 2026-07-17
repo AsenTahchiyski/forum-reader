@@ -5,6 +5,8 @@
 :root {
   --accent: 122 162 255;
   --accent-contrast: 11 15 23;
+  --unread: 234 88 12;
+  --unread-contrast: 255 255 255;
 
   --surface: 247 248 251;
   --surface-2: 255 255 255;
@@ -16,6 +18,8 @@
 }
 
 [data-theme='dark'] {
+  --unread: 251 146 60;
+  --unread-contrast: 11 15 23;
   --surface: 11 15 23;
   --surface-2: 22 28 40;
   --ink: 232 237 246;
@@ -27,6 +31,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
+    --unread: 251 146 60;
+    --unread-contrast: 11 15 23;
     --surface: 11 15 23;
     --surface-2: 22 28 40;
     --ink: 232 237 246;

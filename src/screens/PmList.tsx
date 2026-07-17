@@ -48,7 +48,7 @@ export function PmList() {
                 <Avatar name={m.party} src={m.partyAvatar} size={38} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
-                    {m.isUnread && <span className="h-2 w-2 rounded-full bg-accent shrink-0" />}
+                    {m.isUnread && <span className="h-2 w-2 rounded-full bg-unread shrink-0" />}
                     <span className={`truncate ${m.isUnread ? 'font-semibold' : 'font-medium'}`}>
                       {m.title || t('common.noSubject')}
                     </span>

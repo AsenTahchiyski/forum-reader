@@ -53,9 +53,30 @@ export function formatWhen(s?: string): string {
   return friendly(d);
 }
 
-/** formatWhen for a unix-seconds timestamp (BBCode quote `time=` attributes). */
+/**
+ * SMF-style stamp for quote cite lines (BBCode `time=`/`date=` attributes):
+ * always day-based with seconds — "Днес в 19:29:23" / "Вчера в 19:29:23" /
+ * full date — matching the forum's own quote headers, never the "ago" form.
+ */
 export function formatEpoch(sec: number): string {
-  return friendly(new Date(sec * 1000));
+  const d = new Date(sec * 1000);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  const time = `${hh}:${mm}:${ss}`;
+
+  const now = new Date();
+  if (isSameDay(d, now)) return t('time.today', { time });
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (isSameDay(d, yesterday)) return t('time.yesterday', { time });
+
+  return t('time.stamp', {
+    day: d.getDate(),
+    month: monthShort(d.getMonth()),
+    year: d.getFullYear(),
+    time
+  });
 }
 
 function friendly(d: Date): string {

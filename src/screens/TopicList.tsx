@@ -139,7 +139,7 @@ export function TopicList() {
                   <span className="mt-0.5 shrink-0">
                     {topic.hasNew ? (
                       <span
-                        className="grid h-5 w-5 place-items-center rounded-full bg-accent text-accent-contrast"
+                        className="grid h-5 w-5 place-items-center rounded-full bg-unread text-unread-contrast"
                         aria-label={t('topics.unread')}
                         title={t('topics.unread')}
                       >

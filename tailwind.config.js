@@ -7,6 +7,8 @@ export default {
       colors: {
         accent: 'rgb(var(--accent) / <alpha-value>)',
         'accent-contrast': 'rgb(var(--accent-contrast) / <alpha-value>)',
+        unread: 'rgb(var(--unread) / <alpha-value>)',
+        'unread-contrast': 'rgb(var(--unread-contrast) / <alpha-value>)',
         surface: 'rgb(var(--surface) / <alpha-value>)',
         'surface-2': 'rgb(var(--surface-2) / <alpha-value>)',
         ink: 'rgb(var(--ink) / <alpha-value>)',

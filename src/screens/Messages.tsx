@@ -70,7 +70,7 @@ export function Messages() {
                       </span>
                     </span>
                     {box.unreadCount > 0 && (
-                      <span className="rounded-full bg-accent text-accent-contrast text-xs font-semibold px-2 py-0.5">
+                      <span className="rounded-full bg-unread text-unread-contrast text-xs font-semibold px-2 py-0.5">
                         {box.unreadCount}
                       </span>
                     )}

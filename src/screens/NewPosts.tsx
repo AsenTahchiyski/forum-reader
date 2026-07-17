@@ -50,7 +50,7 @@ export function NewPosts() {
                     }
                     className="w-full flex items-start gap-3 rounded-2xl border border-line bg-surface-2 p-3 text-left hover:border-accent/50 transition-colors"
                   >
-                    <span className="mt-0.5 shrink-0 grid h-5 w-5 place-items-center rounded-full bg-accent text-accent-contrast">
+                    <span className="mt-0.5 shrink-0 grid h-5 w-5 place-items-center rounded-full bg-unread text-unread-contrast">
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
                     </span>
                     <span className="min-w-0 flex-1">

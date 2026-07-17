@@ -126,7 +126,13 @@ function ForumRow({
         onClick={() => onOpen(node)}
         className="w-full flex items-center gap-3 rounded-2xl border border-line bg-surface-2 p-3 text-left hover:border-accent/50 transition-colors"
       >
-        <span className="h-9 w-9 grid place-items-center rounded-xl bg-[rgb(var(--accent)/0.12)] text-accent shrink-0">
+        <span
+          className={`h-9 w-9 grid place-items-center rounded-xl shrink-0 ${
+            node.hasNew
+              ? 'bg-[rgb(var(--unread)/0.15)] text-unread'
+              : 'bg-[rgb(var(--accent)/0.12)] text-accent'
+          }`}
+        >
           {node.hasNew ? (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
           ) : (
