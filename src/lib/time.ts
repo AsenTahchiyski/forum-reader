@@ -55,15 +55,14 @@ export function formatWhen(s?: string): string {
 
 /**
  * SMF-style stamp for quote cite lines (BBCode `time=`/`date=` attributes):
- * always day-based with seconds — "Днес в 19:29:23" / "Вчера в 19:29:23" /
- * full date — matching the forum's own quote headers, never the "ago" form.
+ * always day-based — "Днес в 19:29" / "Вчера в 19:29" / full date — matching
+ * the forum's own quote headers, never the "ago" form.
  */
 export function formatEpoch(sec: number): string {
   const d = new Date(sec * 1000);
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
-  const ss = String(d.getSeconds()).padStart(2, '0');
-  const time = `${hh}:${mm}:${ss}`;
+  const time = `${hh}:${mm}`;
 
   const now = new Date();
   if (isSameDay(d, now)) return t('time.today', { time });

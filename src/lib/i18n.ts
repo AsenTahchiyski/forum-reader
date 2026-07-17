@@ -260,7 +260,7 @@ const bg: Record<MsgKey, string> = {
   'time.yesterday': 'Вчера в {time}',
   'time.stamp': '{day} {month} {year} в {time}',
 
-  'quote.byAt': 'Цитат на: {who} в {when}',
+  'quote.byAt': 'Цитат на: {who} на {when}',
   'quote.by': 'Цитат на: {who}',
   'spoiler.label': 'Спойлер',
   'spoiler.hidden': 'Скрито съдържание',
