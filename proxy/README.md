@@ -58,6 +58,17 @@ PWA  --POST (XML-RPC body)-->  relay  --POST-->  forum /mobiquo/mobiquo.php
   `X-Set-Forum-Session` response header so the app can maintain the login
   session across calls.
 
+## Troubleshooting
+
+- **Every forum call fails with "Invalid action".** The relay is reaching your
+  forum but the request body is arriving empty, so the Tapatalk plugin sees no
+  method. This happens when the forwarded POST is sent with chunked transfer
+  encoding and the forum's server (commonly Apache behind a CDN) drops chunked
+  bodies. The relay avoids this by buffering the body so every forwarded POST
+  carries a `Content-Length` — make sure you're running the current
+  [`worker.js`](./worker.js) / [`deno-relay.ts`](./deno-relay.ts); if you
+  deployed an older copy, re-paste and redeploy.
+
 ## Security notes
 
 - **Set `RELAY_TOKEN`.** It stops strangers from using your relay.
