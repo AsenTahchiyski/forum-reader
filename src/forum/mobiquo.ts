@@ -484,13 +484,17 @@ export class MobiquoClient {
       const to = asArray(s.msg_to).map((t) => pickPerson({ x: t }, ['x']).name);
       party = to.filter(Boolean).join(', ');
     }
+    // mobiquo get_box reports read state via msg_state: 1 = unread, 2 = read
+    // (not a boolean), so fall back to is_unread only when msg_state is absent.
+    const state = pickInt(s, ['msg_state'], 0);
+    const isUnread = state ? state === 1 : pickBool(s, ['is_unread']);
     return {
       id: pickStr(s, ['msg_id', 'id']),
-      title: pickStr(s, ['msg_title', 'subject', 'title']),
+      title: pickStr(s, ['msg_subject', 'msg_title', 'subject', 'title']),
       party,
       partyAvatar: this.resolveUrl(from.avatar),
       sentAt: pickStr(s, ['sent_date', 'msg_time']) || undefined,
-      isUnread: pickBool(s, ['is_unread', 'msg_state']),
+      isUnread,
       shortContent: pickStr(s, ['short_content']) || undefined
     };
   }
@@ -500,7 +504,7 @@ export class MobiquoClient {
     const from = pickPerson(s, ['msg_from']);
     return {
       id: pickStr(s, ['msg_id', 'id'], msgId),
-      title: pickStr(s, ['msg_title', 'subject', 'title']),
+      title: pickStr(s, ['msg_subject', 'msg_title', 'subject', 'title']),
       from: from.name,
       fromAvatar: this.resolveUrl(from.avatar),
       to: asArray(s.msg_to).map((t) => pickPerson({ x: t }, ['x']).name).filter(Boolean),
