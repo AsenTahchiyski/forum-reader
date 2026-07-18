@@ -515,9 +515,12 @@ export class MobiquoClient {
     body: string
   ): Promise<{ ok: boolean; message?: string }> {
     const recipients = to.map((u) => b64(u));
-    // create_message(MsgTo[], Subject, TextBody, Action)
+    // create_message(MsgTo[], Subject, TextBody) for a new message. The mobiquo
+    // server only registers 3-param (new) and 5-param (reply/forward, with
+    // action + msg_id) signatures, so a 4-param call is rejected with
+    // "No method signature matches number of parameters".
     const s = asStruct(
-      await this.call('create_message', [recipients, b64(subject), b64(body), 0])
+      await this.call('create_message', [recipients, b64(subject), b64(body)])
     );
     return {
       ok: pickBool(s, ['result']),
