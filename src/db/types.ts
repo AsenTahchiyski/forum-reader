@@ -33,6 +33,8 @@ export interface Settings {
   relayToken: string;
   /** Render images / YouTube embeds inline in posts. */
   showMedia: boolean;
+  /** Multiplier for post/reading text size (1 = default). */
+  readingScale?: number;
   /** UI language; unset means "follow the browser". */
   language?: Lang;
   onboarded: boolean;

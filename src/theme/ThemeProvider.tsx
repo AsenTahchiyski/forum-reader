@@ -33,13 +33,21 @@ export function applyThemeMode(mode: ThemeMode): void {
 interface Props {
   accent: string;
   mode: ThemeMode;
+  readingScale: number;
   children: React.ReactNode;
 }
 
-export function ThemeProvider({ accent, mode, children }: Props) {
+export function ThemeProvider({ accent, mode, readingScale, children }: Props) {
   useEffect(() => {
     applyAccent(accent);
   }, [accent]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--reading-scale',
+      String(readingScale)
+    );
+  }, [readingScale]);
 
   useEffect(() => {
     applyThemeMode(mode);

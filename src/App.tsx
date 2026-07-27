@@ -54,7 +54,11 @@ export function App() {
   }
 
   return (
-    <ThemeProvider accent={settings.accentColor} mode={settings.themeMode}>
+    <ThemeProvider
+      accent={settings.accentColor}
+      mode={settings.themeMode}
+      readingScale={settings.readingScale ?? 1}
+    >
       {unlocked ? (
         <HashRouter>
           <div className="app-shell">

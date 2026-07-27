@@ -139,6 +139,25 @@ export function Settings() {
               onChange={(v) => updateSettings({ showMedia: v })}
             />
           </Row>
+          <Row label={t('settings.readingScale')} hint={t('settings.readingScaleHint')}>
+            <div className="flex items-center gap-2 shrink-0">
+              <input
+                type="range"
+                min={0.8}
+                max={1.6}
+                step={0.1}
+                value={settings.readingScale ?? 1}
+                onChange={(e) =>
+                  updateSettings({ readingScale: Number(e.target.value) })
+                }
+                className="w-32 accent-accent"
+                aria-label={t('settings.readingScale')}
+              />
+              <span className="text-sm tabular-nums text-ink-dim w-10 text-right">
+                {Math.round((settings.readingScale ?? 1) * 100)}%
+              </span>
+            </div>
+          </Row>
         </Section>
 
         {/* Default forum */}

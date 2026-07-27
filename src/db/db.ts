@@ -42,6 +42,7 @@ export const defaultSettings = (): Settings => {
     proxyBaseUrl: '',
     relayToken: '',
     showMedia: true,
+    readingScale: 1,
     onboarded: false,
     createdAt: now,
     updatedAt: now
