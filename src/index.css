@@ -119,10 +119,10 @@ textarea {
   .has-dock-pager .tab-bar > div {
     margin-left: auto;
     margin-right: 0;
-    max-width: 8rem;
+    max-width: 9rem;
   }
   .has-dock-pager .pager-dock > div {
-    padding-right: 7.5rem; /* clear the tab pill sitting to its right */
+    padding-right: 8.5rem; /* clear the tab pill sitting to its right */
   }
   .has-dock-pager .tab-bar .glass,
   .has-dock-pager .pager-dock .glass {
@@ -136,9 +136,9 @@ textarea {
   }
   .has-dock-pager .tab-bar button {
     flex-direction: row;
+    justify-content: center; /* re-center the icon so the active bg wraps it */
     height: 100%;
-    padding-top: 0;
-    padding-bottom: 0;
+    padding: 0 0.5rem;
   }
   .has-dock-pager .tab-bar button span:last-child {
     display: none; /* icons only */
