@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cx } from '../lib/cx';
 import { t } from '../lib/i18n';
 import { Button } from './Button';
@@ -19,6 +19,16 @@ interface Props {
 export function Pager({ page, pageCount, onChange, disabled, dock }: Props) {
   const [jumpOpen, setJumpOpen] = useState(false);
   const [value, setValue] = useState('');
+
+  // While a docked pager is on screen, flag the root so landscape CSS can tuck
+  // the tab bar aside to share the bottom line (see .has-dock-pager in index.css).
+  const docked = !!dock && pageCount > 1;
+  useEffect(() => {
+    if (!docked) return;
+    const root = document.documentElement;
+    root.classList.add('has-dock-pager');
+    return () => root.classList.remove('has-dock-pager');
+  }, [docked]);
 
   if (pageCount <= 1) return null;
 
