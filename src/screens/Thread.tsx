@@ -13,6 +13,7 @@ import { PostContent, quotePost } from '../lib/bbcode';
 import { t } from '../lib/i18n';
 import { formatWhen } from '../lib/time';
 import { goToProfile } from '../lib/profile';
+import { normalizeYouTubeLinks } from '../lib/url';
 import { useAsync } from '../hooks/useAsync';
 import { useSettings } from '../hooks/useSettings';
 
@@ -238,7 +239,12 @@ export function Thread() {
     setPostError(null);
     try {
       const client = await getClient(accountId);
-      const res = await client.replyToTopic(data?.forumId || '', topicId!, '', body);
+      const res = await client.replyToTopic(
+        data?.forumId || '',
+        topicId!,
+        '',
+        normalizeYouTubeLinks(body)
+      );
       if (!res.ok) throw new Error(res.message || t('thread.rejectedReply'));
       setBody('');
       setReplyOpen(false);
@@ -285,7 +291,11 @@ export function Thread() {
     setEditError(null);
     try {
       const client = await getClient(accountId);
-      const res = await client.saveRawPost(postId, editSubject.current, editBody);
+      const res = await client.saveRawPost(
+        postId,
+        editSubject.current,
+        normalizeYouTubeLinks(editBody)
+      );
       if (!res.ok) throw new Error(res.message || t('thread.rejectedEdit'));
       if (res.content) {
         // Update the rendered post in place; keeps the reader's scroll position.

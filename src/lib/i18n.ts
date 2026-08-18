@@ -12,6 +12,7 @@ export type Lang = 'en' | 'bg';
 const en = {
   // Shared bits
   'common.cancel': 'Cancel',
+  'common.close': 'Close',
   'common.loading': 'Loading…',
   'common.loadingAria': 'Loading',
   'common.loadMore': 'Load more',
@@ -240,6 +241,7 @@ export type MsgKey = keyof typeof en;
 
 const bg: Record<MsgKey, string> = {
   'common.cancel': 'Отказ',
+  'common.close': 'Затвори',
   'common.loading': 'Зареждане…',
   'common.loadingAria': 'Зареждане',
   'common.loadMore': 'Зареди още',

@@ -5,7 +5,8 @@
  * DOMPurify before injecting. Images and embeds honor the `showMedia` setting.
  */
 import DOMPurify from 'dompurify';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ImageViewer } from '../components/ImageViewer';
 import { t, useLang } from './i18n';
 import { formatEpoch, parseForumDate } from './time';
 
@@ -376,12 +377,14 @@ export function PostContent({ content, showMedia, forumId }: Props) {
     [content, showMedia, forumId, lang]
   );
   const ref = useRef<HTMLDivElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const onClick = (e: MouseEvent) => {
-      const embed = (e.target as HTMLElement).closest<HTMLElement>('.yt-embed');
+      const target = e.target as HTMLElement;
+      const embed = target.closest<HTMLElement>('.yt-embed');
       if (embed) {
         e.preventDefault();
         const id = embed.getAttribute('data-yt');
@@ -394,17 +397,32 @@ export function PostContent({ content, showMedia, forumId }: Props) {
           `clipboard-write; encrypted-media; gyroscope; picture-in-picture" ` +
           `allowfullscreen></iframe>`;
         embed.replaceWith(frame);
+        return;
       }
+      // Smilies come through as tiny images; leave those alone.
+      const img = target.closest('img');
+      if (!img || img.clientWidth < 48) return;
+      const link = img.closest('a');
+      // A wrapping link usually points at the full-size image — prefer it, but
+      // let a link to anything else open normally.
+      const href = link?.getAttribute('href') || '';
+      const full = /\.(jpe?g|png|gif|webp|avif|bmp)(\?|#|$)/i.test(href) ? href : null;
+      if (!full && link) return;
+      e.preventDefault();
+      setPreview(full || img.src);
     };
     el.addEventListener('click', onClick);
     return () => el.removeEventListener('click', onClick);
   }, [html]);
 
   return (
-    <div
-      ref={ref}
-      className="post-content"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <>
+      <div
+        ref={ref}
+        className="post-content"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+      <ImageViewer src={preview} onClose={() => setPreview(null)} />
+    </>
   );
 }
