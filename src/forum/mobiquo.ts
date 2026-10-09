@@ -188,9 +188,13 @@ export class MobiquoClient {
   /**
    * Stickies and announcements. Plain get_topic browsing leaves them out —
    * they're only returned by the `TOP` / `ANN` modes. Either mode may be
-   * unsupported on a given plugin, so a failing mode just contributes nothing.
+   * unsupported on a given plugin: a failing mode contributes nothing, and so
+   * does one whose result overlaps the regular first page (`firstPage`) —
+   * that means the plugin ignored the mode and sent back the normal list (or
+   * already lists its stickies there).
    */
-  async getPinnedTopics(forumId: string): Promise<Topic[]> {
+  async getPinnedTopics(forumId: string, firstPage: Topic[]): Promise<Topic[]> {
+    const regularIds = new Set(firstPage.map((t) => t.id));
     const modes = await Promise.all(
       ['ANN', 'TOP'].map((mode) =>
         this.call('get_topic', [forumId, 0, 49, mode]).catch(() => null)
@@ -200,12 +204,14 @@ export class MobiquoClient {
     const out: Topic[] = [];
     for (const raw of modes) {
       if (raw == null) continue;
-      const list = Array.isArray(raw) ? raw : asArray(asStruct(raw).topics);
-      for (const item of list) {
-        const topic = { ...this.mapTopic(asStruct(item)), isSticky: true };
+      const list = (Array.isArray(raw) ? raw : asArray(asStruct(raw).topics)).map((t) =>
+        this.mapTopic(asStruct(t))
+      );
+      if (list.some((t) => regularIds.has(t.id))) continue;
+      for (const topic of list) {
         if (topic.id && !seen.has(topic.id)) {
           seen.add(topic.id);
-          out.push(topic);
+          out.push({ ...topic, isSticky: true });
         }
       }
     }

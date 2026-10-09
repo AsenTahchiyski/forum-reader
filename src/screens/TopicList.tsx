@@ -66,11 +66,13 @@ export function TopicList() {
   const { data, loading, error, reload } = useAsync(
     async () => {
       const client = await getClient(Number(forumId));
+      const list = await client.getTopics(
+        catId!,
+        page * PAGE_SIZE,
+        page * PAGE_SIZE + PAGE_SIZE - 1
+      );
       // Pinned topics aren't part of regular browsing; show them atop page 1.
-      const [list, pinned] = await Promise.all([
-        client.getTopics(catId!, page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1),
-        page === 0 ? client.getPinnedTopics(catId!) : Promise.resolve([])
-      ]);
+      const pinned = page === 0 ? await client.getPinnedTopics(catId!, list.topics) : [];
       return { ...list, pinned };
     },
     [forumId, catId, page]
@@ -78,9 +80,7 @@ export function TopicList() {
 
   const regular = data?.topics ?? [];
   const pinned = data?.pinned ?? [];
-  // Some plugins do include stickies in plain browsing — don't list them twice.
-  const pinnedIds = new Set(pinned.map((p) => p.id));
-  const topics = [...pinned, ...regular.filter((r) => !pinnedIds.has(r.id))];
+  const topics = [...pinned, ...regular];
   const total = data?.total ?? 0;
   const fullPage = regular.length >= PAGE_SIZE;
   // Use the real total when the plugin reports it; otherwise infer whether a
