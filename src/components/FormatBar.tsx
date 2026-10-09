@@ -49,6 +49,7 @@ export function FormatBar({ textareaRef, value, onChange }: Props) {
     { label: 'U', title: t('format.underline'), className: 'underline', onClick: () => wrap('[u]', '[/u]') },
     { label: '❝', title: t('format.quote'), onClick: () => wrap('[quote]', '[/quote]') },
     { label: 'URL', title: t('format.link'), onClick: url },
+    { label: 'IMG', title: t('format.image'), onClick: () => wrap('[img]', '[/img]') },
     { label: t('format.spoiler'), title: t('format.spoiler'), onClick: () => wrap('[spoiler]', '[/spoiler]') }
   ];
 

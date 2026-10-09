@@ -50,6 +50,7 @@ const en = {
   'format.underline': 'Underline',
   'format.quote': 'Quote',
   'format.link': 'Link',
+  'format.image': 'Image',
   'format.spoiler': 'Spoiler',
   'format.aria': 'Formatting',
 
@@ -276,6 +277,7 @@ const bg: Record<MsgKey, string> = {
   'format.underline': 'Подчертан',
   'format.quote': 'Цитат',
   'format.link': 'Връзка',
+  'format.image': 'Изображение',
   'format.spoiler': 'Спойлер',
   'format.aria': 'Форматиране',
 

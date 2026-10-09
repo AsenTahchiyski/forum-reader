@@ -66,14 +66,23 @@ export function TopicList() {
   const { data, loading, error, reload } = useAsync(
     async () => {
       const client = await getClient(Number(forumId));
-      return client.getTopics(catId!, page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+      // Pinned topics aren't part of regular browsing; show them atop page 1.
+      const [list, pinned] = await Promise.all([
+        client.getTopics(catId!, page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1),
+        page === 0 ? client.getPinnedTopics(catId!) : Promise.resolve([])
+      ]);
+      return { ...list, pinned };
     },
     [forumId, catId, page]
   );
 
-  const topics = data?.topics ?? [];
+  const regular = data?.topics ?? [];
+  const pinned = data?.pinned ?? [];
+  // Some plugins do include stickies in plain browsing — don't list them twice.
+  const pinnedIds = new Set(pinned.map((p) => p.id));
+  const topics = [...pinned, ...regular.filter((r) => !pinnedIds.has(r.id))];
   const total = data?.total ?? 0;
-  const fullPage = topics.length >= PAGE_SIZE;
+  const fullPage = regular.length >= PAGE_SIZE;
   // Use the real total when the plugin reports it; otherwise infer whether a
   // next page likely exists from whether this page came back full.
   const pageCount =

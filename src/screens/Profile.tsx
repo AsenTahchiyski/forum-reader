@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { Header } from '../components/Header';
+import { ImageViewer } from '../components/ImageViewer';
 import { LoadingScreen } from '../components/Spinner';
 import { getClient } from '../forum/connection';
 import { PostContent } from '../lib/bbcode';
@@ -32,6 +33,7 @@ export function Profile() {
   const accountId = Number(forumId);
   const st = (useLocation().state as NavState | null) ?? {};
   const settings = useSettings();
+  const [avatarOpen, setAvatarOpen] = useState(false);
 
   // Prefer the identifiers handed over in navigation state; on a cold load
   // (e.g. refresh) fall back to the path segment as the username.
@@ -62,7 +64,13 @@ export function Profile() {
       {data && (
         <div className="mx-auto max-w-4xl p-4 space-y-4">
           <div className="flex items-center gap-3">
-            <Avatar name={name} src={data.avatar} size={64} />
+            {data.avatar ? (
+              <button type="button" className="shrink-0 rounded-full" onClick={() => setAvatarOpen(true)}>
+                <Avatar name={name} src={data.avatar} size={64} />
+              </button>
+            ) : (
+              <Avatar name={name} src={data.avatar} size={64} />
+            )}
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold truncate">{name}</h2>
               {data.displayName && data.username && data.displayName !== data.username && (
@@ -133,6 +141,7 @@ export function Profile() {
           {error && <p className="text-center text-sm text-[rgb(255,107,107)]">{error}</p>}
         </div>
       )}
+      <ImageViewer src={avatarOpen ? data?.avatar ?? null : null} onClose={() => setAvatarOpen(false)} />
     </div>
   );
 }

@@ -185,6 +185,33 @@ export class MobiquoClient {
     };
   }
 
+  /**
+   * Stickies and announcements. Plain get_topic browsing leaves them out —
+   * they're only returned by the `TOP` / `ANN` modes. Either mode may be
+   * unsupported on a given plugin, so a failing mode just contributes nothing.
+   */
+  async getPinnedTopics(forumId: string): Promise<Topic[]> {
+    const modes = await Promise.all(
+      ['ANN', 'TOP'].map((mode) =>
+        this.call('get_topic', [forumId, 0, 49, mode]).catch(() => null)
+      )
+    );
+    const seen = new Set<string>();
+    const out: Topic[] = [];
+    for (const raw of modes) {
+      if (raw == null) continue;
+      const list = Array.isArray(raw) ? raw : asArray(asStruct(raw).topics);
+      for (const item of list) {
+        const topic = { ...this.mapTopic(asStruct(item)), isSticky: true };
+        if (topic.id && !seen.has(topic.id)) {
+          seen.add(topic.id);
+          out.push(topic);
+        }
+      }
+    }
+    return out;
+  }
+
   async getUnreadTopics(
     start: number,
     end: number
