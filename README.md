@@ -43,6 +43,28 @@ setup, then paste the relay URL + token into the app's **Settings → Relay**.
   with DOMPurify. Toggle media in Settings.
 - **Dark / light / system** theme + accent color.
 - Read/unread state is left to the forum (the source of truth), as requested.
+- **Sync file** — keep your settings and forum list in a JSON file you choose
+  (see below), so several devices can share one setup.
+
+## Sync file
+
+**Settings → Sync file** links the app to a human-readable JSON file anywhere
+you like (a NAS share, a synced cloud folder, …):
+
+- **Create new file…** writes this device's setup into a new file;
+  **Open existing file…** links a file made on another device and merges it in
+  (nothing on this device is removed on that first link).
+- While linked, every change is saved to the file automatically, and the file
+  is re-read at startup and whenever you return to the app. If both sides
+  changed, the newer one wins and the app tells you which copy it kept.
+- The file holds the theme, accent, language, media and text-size settings, the
+  relay URL, your default forum, and each forum's name, URL and **username**.
+  It **never** contains passwords or the relay token — enter those once per
+  device. Forums that arrive from the file show "password needed" until you do.
+- Live sync uses the File System Access API (**Chrome / Edge**, desktop and
+  recent Android). After a reload the browser may ask you to allow file access
+  again; tap the banner on the Forums screen. Other browsers (Firefox, Safari,
+  iOS) get **Export JSON / Import JSON** buttons to move the same file by hand.
 
 ## Develop
 
