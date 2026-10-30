@@ -1,22 +1,38 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
+import { Button } from '../components/Button';
+import { Field } from '../components/Field';
 import { Header } from '../components/Header';
-import { LoadingScreen } from '../components/Spinner';
-import { updateSettings } from '../db/db';
+import { Modal } from '../components/Modal';
+import { LoadingScreen, Spinner } from '../components/Spinner';
+import { updateForum, updateSettings } from '../db/db';
+import type { ForumAccount } from '../db/types';
+import { dropConnection, makeProbeClient } from '../forum/connection';
 import { setActiveForumId } from '../lib/activeForum';
 import { t } from '../lib/i18n';
+import { reconnectSync } from '../lib/syncFile';
 import { hostOf } from '../lib/url';
+import { encryptSecrets } from '../lib/vault';
 import { useForums } from '../hooks/useForums';
 import { useSettings } from '../hooks/useSettings';
+import { useSyncState } from '../hooks/useSync';
 
 export function Forums() {
   const navigate = useNavigate();
   const forums = useForums();
   const settings = useSettings();
+  const sync = useSyncState();
+  const [needsPassword, setNeedsPassword] = useState<ForumAccount | null>(null);
 
   if (!forums || !settings) return <LoadingScreen />;
 
   const open = (id: number) => {
+    const forum = forums.find((f) => f.id === id);
+    if (forum && !forum.secrets) {
+      setNeedsPassword(forum);
+      return;
+    }
     setActiveForumId(id);
     navigate(`/f/${id}`);
   };
@@ -57,6 +73,17 @@ export function Forums() {
         </button>
       )}
 
+      {sync.kind === 'needs-permission' && (
+        <button onClick={() => reconnectSync()} className="mx-auto block w-full max-w-4xl text-left">
+          <div className="m-4 rounded-xl border border-accent/40 bg-[rgb(var(--accent)/0.08)] p-4">
+            <p className="text-sm font-medium text-ink">{t('sync.reconnectBanner')}</p>
+            <p className="text-xs text-ink-dim mt-1">
+              {t('sync.reconnectBannerHint', { file: sync.fileName })}
+            </p>
+          </div>
+        </button>
+      )}
+
       <div className="mx-auto max-w-4xl p-4">
         {forums.length === 0 ? (
           <div className="text-center py-16 text-ink-dim">
@@ -79,6 +106,9 @@ export function Forums() {
                     <p className="font-medium truncate">{f.name}</p>
                     <p className="text-xs text-ink-dim truncate">
                       {hostOf(f.baseUrl)} · {f.username}
+                      {!f.secrets && (
+                        <span className="text-accent"> · {t('forums.passwordNeeded')}</span>
+                      )}
                     </p>
                   </div>
                   <button
@@ -110,6 +140,101 @@ export function Forums() {
           </ul>
         )}
       </div>
+
+      <PasswordModal
+        forum={needsPassword}
+        onClose={() => setNeedsPassword(null)}
+        onSaved={(id) => {
+          setNeedsPassword(null);
+          setActiveForumId(id);
+          navigate(`/f/${id}`);
+        }}
+      />
     </div>
+  );
+}
+
+/** Enter the password for a forum that arrived via the sync file. */
+function PasswordModal({
+  forum,
+  onClose,
+  onSaved
+}: {
+  forum: ForumAccount | null;
+  onClose: () => void;
+  onSaved: (id: number) => void;
+}) {
+  const settings = useSettings();
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const close = () => {
+    setPassword('');
+    setError(null);
+    onClose();
+  };
+
+  const submit = async () => {
+    if (!forum || !settings) return;
+    setError(null);
+    if (!settings.proxyBaseUrl) {
+      setError(t('add.configureRelay'));
+      return;
+    }
+    setBusy(true);
+    try {
+      const client = makeProbeClient(
+        settings.proxyBaseUrl,
+        settings.relayToken,
+        forum.mobiquoUrl
+      );
+      const result = await client.login(forum.username, password);
+      if (!result.success) {
+        setError(result.error || t('add.loginFailed'));
+        return;
+      }
+      await updateForum(forum.id!, { secrets: await encryptSecrets({ password }) });
+      dropConnection(forum.id!);
+      setPassword('');
+      onSaved(forum.id!);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('add.couldNotConnectShort'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal open={!!forum} onClose={close} title={forum?.name}>
+      <form
+        className="space-y-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <p className="text-sm text-ink-dim">
+          {t('forums.enterPassword', { user: forum?.username ?? '' })}
+        </p>
+        <Field
+          label={t('add.password')}
+          type="password"
+          autoComplete="current-password"
+          autoFocus
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {error && <p className="text-sm text-[rgb(255,107,107)]">{error}</p>}
+        <div className="flex gap-2 justify-end">
+          <Button type="button" variant="ghost" size="sm" onClick={close}>
+            {t('common.cancel')}
+          </Button>
+          <Button type="submit" size="sm" disabled={!password || busy}>
+            {busy ? <Spinner /> : t('common.save')}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

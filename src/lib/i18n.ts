@@ -77,6 +77,10 @@ const en = {
   'forums.noneHint': 'Add a phpBB forum that has the Tapatalk plugin to get started.',
   'forums.favSet': 'Set as favorite',
   'forums.favUnset': 'Unset favorite',
+  'forums.passwordNeeded': 'password needed',
+  'forums.needPassword': 'Enter this forum\'s password in the Forums list first.',
+  'forums.enterPassword':
+    'This forum came from your sync file. Enter the password for {user} — it stays encrypted on this device.',
 
   // Board index (Categories)
   'cats.loading': 'Loading forums…',
@@ -235,7 +239,29 @@ const en = {
   'settings.erase1': 'This deletes',
   'settings.erase2': 'all saved forums and logins',
   'settings.erase3': 'from this device. This cannot be undone.',
-  'settings.eraseConfirm': 'Erase everything'
+  'settings.eraseConfirm': 'Erase everything',
+
+  // JSON sync file (lib/syncFile.ts)
+  'sync.title': 'Sync file',
+  'sync.hint':
+    'Keep settings and forums (with usernames, never passwords or the relay token) in a JSON file you choose, e.g. on a NAS, to share them between devices.',
+  'sync.create': 'Create new file…',
+  'sync.open': 'Open existing file…',
+  'sync.connected': 'connected',
+  'sync.syncedAt': 'synced {when}',
+  'sync.needsPermission': 'needs access again',
+  'sync.syncNow': 'Sync now',
+  'sync.reconnect': 'Allow access',
+  'sync.disconnect': 'Stop syncing',
+  'sync.unsupported':
+    'This browser can\'t keep a file in sync. Use export / import to move your config instead.',
+  'sync.export': 'Export JSON',
+  'sync.import': 'Import JSON…',
+  'sync.invalidFile': 'That file isn\'t a Forum Reader config.',
+  'sync.conflictFile': 'Both this device and the sync file changed; kept the newer file.',
+  'sync.conflictLocal': 'Both this device and the sync file changed; kept this device\'s newer copy.',
+  'sync.reconnectBanner': 'Tap to resume syncing',
+  'sync.reconnectBannerHint': 'The browser needs your OK to keep using {file}.'
 };
 
 export type MsgKey = keyof typeof en;
@@ -301,6 +327,10 @@ const bg: Record<MsgKey, string> = {
   'forums.noneHint': 'Добави phpBB форум с Tapatalk плъгин, за да започнеш.',
   'forums.favSet': 'Направи любим',
   'forums.favUnset': 'Премахни от любими',
+  'forums.passwordNeeded': 'нужна е парола',
+  'forums.needPassword': 'Първо въведи паролата за този форум в списъка с форуми.',
+  'forums.enterPassword':
+    'Този форум дойде от файла за синхронизация. Въведи паролата за {user} — тя остава криптирана на това устройство.',
 
   'cats.loading': 'Зареждане на раздели…',
   'cats.newPosts': 'Нови публикации',
@@ -447,7 +477,28 @@ const bg: Record<MsgKey, string> = {
   'settings.erase1': 'Това изтрива',
   'settings.erase2': 'всички запазени форуми и данни за вход',
   'settings.erase3': 'от това устройство. Действието е необратимо.',
-  'settings.eraseConfirm': 'Изтрий всичко'
+  'settings.eraseConfirm': 'Изтрий всичко',
+
+  'sync.title': 'Файл за синхронизация',
+  'sync.hint':
+    'Пази настройките и форумите (с потребителските имена, никога паролите или токена на релето) в JSON файл по твой избор, напр. на NAS, за да ги споделяш между устройства.',
+  'sync.create': 'Създай нов файл…',
+  'sync.open': 'Отвори съществуващ файл…',
+  'sync.connected': 'свързан',
+  'sync.syncedAt': 'синхронизиран {when}',
+  'sync.needsPermission': 'нужен е достъп отново',
+  'sync.syncNow': 'Синхронизирай сега',
+  'sync.reconnect': 'Разреши достъп',
+  'sync.disconnect': 'Спри синхронизацията',
+  'sync.unsupported':
+    'Този браузър не може да синхронизира файл. Използвай експорт / импорт, за да пренесеш настройките.',
+  'sync.export': 'Експортирай JSON',
+  'sync.import': 'Импортирай JSON…',
+  'sync.invalidFile': 'Този файл не е конфигурация на Forum Reader.',
+  'sync.conflictFile': 'Промени и на устройството, и във файла; запазен е по-новият файл.',
+  'sync.conflictLocal': 'Промени и на устройството, и във файла; запазено е по-новото от устройството.',
+  'sync.reconnectBanner': 'Докосни, за да продължи синхронизацията',
+  'sync.reconnectBannerHint': 'Браузърът иска разрешение, за да продължи да ползва {file}.'
 };
 
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

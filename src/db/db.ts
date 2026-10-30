@@ -1,10 +1,11 @@
 import Dexie, { type Table } from 'dexie';
-import type { ForumAccount, Settings, VaultRecord } from './types';
+import type { ForumAccount, Settings, SyncRecord, VaultRecord } from './types';
 
 class ForumDB extends Dexie {
   settings!: Table<Settings, 'default'>;
   forums!: Table<ForumAccount, number>;
   vault!: Table<VaultRecord, 'default'>;
+  sync!: Table<SyncRecord, 'default'>;
 
   constructor() {
     super('forum-reader');
@@ -26,6 +27,13 @@ class ForumDB extends Dexie {
       forums: '++id, name, createdAt',
       vault: 'id',
       session: null
+    });
+    // Handle + bookkeeping for the user-chosen JSON sync file.
+    this.version(4).stores({
+      settings: 'id',
+      forums: '++id, name, createdAt',
+      vault: 'id',
+      sync: 'id'
     });
   }
 }

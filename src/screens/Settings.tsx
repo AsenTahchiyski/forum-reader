@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Field } from '../components/Field';
@@ -11,10 +11,23 @@ import { dropAllConnections, dropConnection } from '../forum/connection';
 import { PRESET_ACCENTS } from '../lib/color';
 import { cx } from '../lib/cx';
 import { defaultLang, t, type Lang, type MsgKey } from '../lib/i18n';
+import {
+  clearSyncNotice,
+  createSyncFile,
+  disconnectSync,
+  exportConfig,
+  importConfig,
+  liveSyncSupported,
+  openSyncFile,
+  reconnectSync,
+  syncNow
+} from '../lib/syncFile';
+import { formatEpoch } from '../lib/time';
 import { hostOf } from '../lib/url';
 import { resetVault } from '../lib/vault';
 import { useForums } from '../hooks/useForums';
 import { useSettings } from '../hooks/useSettings';
+import { useSyncNotice, useSyncState } from '../hooks/useSync';
 
 const THEME_OPTIONS: { id: ThemeMode; label: MsgKey }[] = [
   { id: 'system', label: 'settings.themeSystem' },
@@ -67,6 +80,8 @@ export function Settings() {
   };
 
   const onReset = async () => {
+    // Erasing this device shouldn't wipe the shared sync file too.
+    await disconnectSync();
     await resetVault();
     dropAllConnections();
     setConfirmReset(false);
@@ -229,6 +244,8 @@ export function Settings() {
           </Button>
         </Section>
 
+        <SyncSection />
+
         {/* Security */}
         <Section title={t('settings.security')}>
           <p className="text-sm text-ink-dim">{t('settings.securityNote')}</p>
@@ -282,6 +299,99 @@ export function Settings() {
         </div>
       </Modal>
     </div>
+  );
+}
+
+function SyncSection() {
+  const sync = useSyncState();
+  const notice = useSyncNotice();
+  const [error, setError] = useState<string | null>(null);
+  const [imported, setImported] = useState(false);
+  const importRef = useRef<HTMLInputElement>(null);
+
+  const run = (fn: () => Promise<void>) => async () => {
+    setError(null);
+    clearSyncNotice();
+    try {
+      await fn();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const onImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await run(() => importConfig(file))();
+    setImported(true);
+    setTimeout(() => setImported(false), 2000);
+  };
+
+  return (
+    <Section title={t('sync.title')} subtitle={t('sync.hint')}>
+      {liveSyncSupported ? (
+        sync.kind === 'off' ? (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={run(createSyncFile)}>
+              {t('sync.create')}
+            </Button>
+            <Button variant="outline" size="sm" onClick={run(openSyncFile)}>
+              {t('sync.open')}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm">
+              <span className="font-medium">{sync.fileName}</span>
+              <span className="text-ink-dim">
+                {' · '}
+                {sync.kind === 'connected'
+                  ? sync.lastSyncAt
+                    ? t('sync.syncedAt', { when: formatEpoch(sync.lastSyncAt / 1000) })
+                    : t('sync.connected')
+                  : sync.kind === 'needs-permission'
+                    ? t('sync.needsPermission')
+                    : sync.message}
+              </span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {sync.kind === 'connected' ? (
+                <Button variant="outline" size="sm" onClick={run(syncNow)}>
+                  {t('sync.syncNow')}
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" onClick={run(reconnectSync)}>
+                  {t('sync.reconnect')}
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={run(disconnectSync)}>
+                {t('sync.disconnect')}
+              </Button>
+            </div>
+          </>
+        )
+      ) : (
+        <p className="text-sm text-ink-dim">{t('sync.unsupported')}</p>
+      )}
+      {notice && <p className="text-sm text-accent">{notice}</p>}
+      {error && <p className="text-sm text-[rgb(255,107,107)]">{error}</p>}
+      <div className="flex flex-wrap gap-2 pt-1">
+        <Button variant="ghost" size="sm" onClick={run(exportConfig)}>
+          {t('sync.export')}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => importRef.current?.click()}>
+          {imported ? t('settings.saved') : t('sync.import')}
+        </Button>
+        <input
+          ref={importRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={onImport}
+        />
+      </div>
+    </Section>
   );
 }
 

@@ -34,10 +34,11 @@ Screens (`src/screens/`) call `getClient()` directly; routing is `HashRouter` (r
 
 ### Persistence and the credential vault
 
-- `src/db/db.ts` (Dexie, three tables: `settings`, `forums`, `vault`; types in `src/db/types.ts`). Schema changes require a new `this.version(n)` entry.
+- `src/db/db.ts` (Dexie, four tables: `settings`, `forums`, `vault`, `sync`; types in `src/db/types.ts`). Schema changes require a new `this.version(n)` entry.
 - Forum passwords are stored only as AES-GCM blobs (`ForumAccount.secrets`), encrypted with a data-encryption key (DEK) managed by `src/lib/vault.ts`. The current model is **no startup lock**: the raw DEK is stored on-device (`method: 'none'`) and loaded automatically at boot. WebAuthn/passphrase code paths exist only to unlock **legacy** vaults one final time and convert them — don't build new features on them.
 - `vault.ts` holds the DEK in module state with a subscribe/emit pattern; `useVaultUnlocked()` is the React binding.
 - The relay token is deliberately in `settings` (plaintext), not the vault — it only gates the user's own proxy.
+- `src/lib/syncFile.ts` mirrors settings + the forum list to a user-chosen JSON file (File System Access API; export/import fallback elsewhere). **Never write passwords or the relay token into it.** Sync is three-way against `SyncRecord.lastSynced`, last-write-wins when both sides changed; forums are matched across devices by `mobiquoUrl` + username. Forums that arrive from the file have no `secrets` until the user enters the password (Forums screen prompts). When adding a synced setting, add it to `SyncContent`/`normalize()`.
 
 ### Conventions worth knowing
 

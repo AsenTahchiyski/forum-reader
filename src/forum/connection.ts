@@ -4,6 +4,7 @@
  * de-duplicated so concurrent screens don't double-login.
  */
 import { ensureSettings, getForum } from '../db/db';
+import { t } from '../lib/i18n';
 import { decryptSecrets } from '../lib/vault';
 import { MobiquoClient } from './mobiquo';
 import { clearSession, type CallContext } from './transport';
@@ -40,6 +41,7 @@ async function buildClient(forumId: number): Promise<MobiquoClient> {
 async function doLogin(forumId: number, client: MobiquoClient): Promise<void> {
   const forum = await getForum(forumId);
   if (!forum) throw new Error('Forum not found.');
+  if (!forum.secrets) throw new Error(t('forums.needPassword'));
   const secrets = await decryptSecrets(forum.secrets);
   const result = await client.login(forum.username, secrets.password);
   if (!result.success) {

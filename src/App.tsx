@@ -98,7 +98,8 @@ function Home() {
   if (!settings || !forums) return <LoadingScreen />;
 
   const fav = settings.favoriteForumId;
-  if (fav != null && forums.some((f) => f.id === fav)) {
+  // A synced-in forum without a password yet: land on the list to enter it.
+  if (fav != null && forums.some((f) => f.id === fav && f.secrets)) {
     return <Navigate to={`/f/${fav}`} replace />;
   }
   return <Navigate to="/forums" replace />;

@@ -55,8 +55,11 @@ export interface ForumAccount {
   /** Resolved mobiquo endpoint, e.g. https://example.com/forum/mobiquo/mobiquo.php */
   mobiquoUrl: string;
   username: string;
-  /** Encrypted JSON: { password, relayToken? }. */
-  secrets: EncBlob;
+  /**
+   * Encrypted JSON: { password, relayToken? }. Absent for a forum that arrived
+   * from the sync file and hasn't had its password entered on this device yet.
+   */
+  secrets?: EncBlob;
   avatarUrl?: string;
   /** Accent color sniffed from the forum's get_config (best effort). */
   brandColor?: string;
@@ -94,4 +97,19 @@ export interface VaultRecord {
     salt: string;
   };
   createdAt: number;
+}
+
+/**
+ * The linked sync file (singleton). `lastSynced` is the canonical content
+ * last known to match both the file and this device — the base for the
+ * three-way "who changed?" check. Empty right after linking a file.
+ */
+export interface SyncRecord {
+  id: 'default';
+  handle: FileSystemFileHandle;
+  fileName: string;
+  lastSynced: string;
+  /** When this device's data last diverged from `lastSynced` (ms). */
+  localChangedAt: number;
+  lastSyncAt?: number;
 }
