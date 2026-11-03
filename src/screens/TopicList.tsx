@@ -166,8 +166,12 @@ export function TopicList() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
-                      {topic.isSticky && <Badge>{t('topics.pinned')}</Badge>}
-                      {topic.isLocked && <Badge>{t('topics.locked')}</Badge>}
+                      {(topic.isSticky || topic.isLocked) && (
+                        <span className="flex shrink-0 flex-col items-start gap-0.5">
+                          {topic.isSticky && <Badge>{t('topics.pinned')}</Badge>}
+                          {topic.isLocked && <Badge>{t('topics.locked')}</Badge>}
+                        </span>
+                      )}
                       <span className={cx('line-clamp-2', topic.hasNew ? 'font-semibold' : 'font-normal text-ink-dim')}>{topic.title}</span>
                     </span>
                     <span className="mt-0.5 block text-xs text-ink-dim truncate">
@@ -204,7 +208,7 @@ export function TopicList() {
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="shrink-0 rounded-md bg-[rgb(var(--accent)/0.14)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+    <span className="rounded bg-[rgb(var(--accent)/0.14)] px-1 text-[8.5px] leading-[14px] font-semibold uppercase text-accent">
       {children}
     </span>
   );
