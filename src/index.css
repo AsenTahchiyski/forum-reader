@@ -132,27 +132,51 @@ textarea {
   display: none; /* icons only */
 }
 
-/* Narrow (portrait phone) screens: tighten margins and the tab pill so the
-   pager still fits beside it on a 360px-wide screen. */
-@media (max-width: 480px) {
+/* The tab bar's nav spans the full width over the pager's row; only its
+   pill should take taps. */
+.has-dock-pager .tab-bar {
+  pointer-events: none;
+}
+.has-dock-pager .tab-bar .glass {
+  pointer-events: auto;
+}
+
+/* Portrait: one full-width bar at the bottom — page controls on the left, the
+   tab icons on the right — on a solid background. The pager strip supplies
+   the background; the tab bar's pill is stripped to bare icons on top of it. */
+@media (orientation: portrait) {
   .has-dock-pager .pager-dock {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-  .has-dock-pager .tab-bar > div {
-    max-width: 6.75rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-  .has-dock-pager .tab-bar button {
-    padding: 0 0.25rem;
+    bottom: 0;
+    padding: 0.5rem 0.5rem calc(env(safe-area-inset-bottom) + 0.5rem);
+    background-color: rgb(var(--surface-2));
+    border-top: 1px solid rgb(var(--line));
+    box-shadow: 0 -2px 30px -10px rgb(0 0 0 / 0.2);
+    pointer-events: auto;
   }
   .has-dock-pager .pager-dock > div {
-    padding-right: 6.625rem;
+    justify-content: flex-start;
+    padding-right: 0;
   }
+  .has-dock-pager .tab-bar {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+  }
+  .has-dock-pager .tab-bar > div {
+    max-width: none;
+    width: fit-content;
+    padding: 0 0.5rem;
+  }
+  .has-dock-pager .tab-bar .glass,
   .has-dock-pager .pager-dock .glass {
-    padding-left: 0.25rem;
-    padding-right: 0.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .has-dock-pager .tab-bar button {
+    padding: 0 0.5rem;
   }
 }
 
