@@ -145,7 +145,7 @@ textarea {
    tab icons on the right — on a solid background. The pager strip supplies
    the background; the tab bar's pill is stripped to bare icons on top of it.
    Phones only: tablets in portrait have room for the compact cluster. */
-@media (orientation: portrait) and (max-width: 639px) {
+@media (orientation: portrait) and (max-width: 500px) {
   .has-dock-pager .pager-dock {
     bottom: 0;
     padding: 0.5rem 0.5rem calc(env(safe-area-inset-bottom) + 0.5rem);
