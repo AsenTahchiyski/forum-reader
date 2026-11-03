@@ -225,25 +225,25 @@ export function Settings() {
           ) : (
             <ul className="divide-y divide-line">
               {forums.map((f) => (
-                <li key={f.id} className="flex items-center gap-3 py-2.5">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{f.name}</p>
-                    <p className="text-xs text-ink-dim truncate">{hostOf(f.baseUrl)}</p>
+                <li key={f.id} className="py-2.5">
+                  <p className="font-medium break-words">{f.name}</p>
+                  <p className="text-xs text-ink-dim break-all">{hostOf(f.baseUrl)}</p>
+                  <div className="flex flex-wrap gap-x-1 -ml-2 mt-1">
+                    <button
+                      onClick={() => setBlockedForumId(f.id!)}
+                      className="text-sm text-ink-dim px-2 py-1"
+                    >
+                      {f.blockedUsers?.length
+                        ? t('settings.blockedCount', { n: f.blockedUsers.length })
+                        : t('settings.blocked')}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete({ id: f.id!, name: f.name })}
+                      className="text-sm text-[rgb(255,107,107)] px-2 py-1"
+                    >
+                      {t('common.remove')}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setBlockedForumId(f.id!)}
-                    className="text-sm text-ink-dim px-2 py-1"
-                  >
-                    {f.blockedUsers?.length
-                      ? t('settings.blockedCount', { n: f.blockedUsers.length })
-                      : t('settings.blocked')}
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete({ id: f.id!, name: f.name })}
-                    className="text-sm text-[rgb(255,107,107)] px-2 py-1"
-                  >
-                    {t('common.remove')}
-                  </button>
                 </li>
               ))}
             </ul>

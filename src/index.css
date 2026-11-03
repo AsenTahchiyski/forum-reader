@@ -88,81 +88,78 @@ textarea {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Pagination docked just above the tab bar. */
+/* Docked pagination shares the tab bar's line instead of stacking above it:
+   both sit flush at the viewport bottom (only the safe-area below), the pager
+   pinned right with the tab bar collapsed to an icons-only pill beside it, so
+   the nav and page controls read as one bottom-right cluster. */
 .pager-dock {
-  bottom: calc(env(safe-area-inset-bottom) + 76px);
+  bottom: env(safe-area-inset-bottom);
+}
+.pager-dock > div {
+  display: flex;
+  max-width: none;
+  margin: 0;
+  justify-content: flex-end;
+  align-items: flex-end;
+  padding-bottom: 0;
+}
+.has-dock-pager .tab-bar > div {
+  margin-left: auto;
+  margin-right: 0;
+  max-width: 9rem;
+  padding-bottom: 0;
+}
+.has-dock-pager .pager-dock > div {
+  padding-right: 8.5rem; /* clear the tab pill sitting to its right */
+}
+.has-dock-pager .tab-bar .glass,
+.has-dock-pager .pager-dock .glass {
+  height: 2.75rem;
+}
+.has-dock-pager .pager-dock .glass {
+  display: flex;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.has-dock-pager .tab-bar button {
+  flex-direction: row;
+  justify-content: center; /* re-center the icon so the active bg wraps it */
+  height: 100%;
+  padding: 0 0.5rem;
+}
+.has-dock-pager .tab-bar button span:last-child {
+  display: none; /* icons only */
 }
 
-/* Portrait: an opaque strip pinned to the viewport bottom, running under the
-   tab bar, so no content shows behind or below the page controls. */
-@media (orientation: portrait) {
-  .pager-dock {
-    bottom: 0;
-    padding-top: 0.5rem;
-    padding-bottom: calc(env(safe-area-inset-bottom) + 76px);
-    background-color: rgb(var(--surface-2));
-    border-top: 1px solid rgb(var(--line));
-    pointer-events: auto;
+/* Narrow (portrait phone) screens: tighten margins and the tab pill so the
+   pager still fits beside it on a 360px-wide screen. */
+@media (max-width: 480px) {
+  .has-dock-pager .pager-dock {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
-  .pager-dock .glass {
-    background: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border: 0;
-    box-shadow: none;
-    padding: 0;
-  }
-}
-
-/* Landscape: vertical space is scarce, so the pager shares the tab bar's
-   line instead of stacking above it — dropped to the same baseline and
-   pinned to the right, with the tab bar tucked left so they don't collide. */
-@media (orientation: landscape) {
-  /* Both bars sit flush at the viewport bottom (only the safe-area below). */
-  .pager-dock {
-    bottom: env(safe-area-inset-bottom);
-  }
-  .pager-dock > div {
-    display: flex;
-    max-width: none;
-    margin: 0;
-    justify-content: flex-end;
-    align-items: flex-end;
-    padding-bottom: 0;
-  }
-  .tab-bar > div {
-    padding-bottom: 0;
-  }
-
-  /* On the thread, the tab bar collapses to an icons-only pill parked just
-     left of the pager, at the same height, so the nav and page controls read
-     as one bottom-right cluster. */
   .has-dock-pager .tab-bar > div {
-    margin-left: auto;
-    margin-right: 0;
-    max-width: 9rem;
-  }
-  .has-dock-pager .pager-dock > div {
-    padding-right: 8.5rem; /* clear the tab pill sitting to its right */
-  }
-  .has-dock-pager .tab-bar .glass,
-  .has-dock-pager .pager-dock .glass {
-    height: 2.75rem;
-  }
-  .has-dock-pager .pager-dock .glass {
-    display: flex;
-    align-items: center;
-    padding-top: 0;
-    padding-bottom: 0;
+    max-width: 6.75rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
   .has-dock-pager .tab-bar button {
-    flex-direction: row;
-    justify-content: center; /* re-center the icon so the active bg wraps it */
-    height: 100%;
-    padding: 0 0.5rem;
+    padding: 0 0.25rem;
   }
-  .has-dock-pager .tab-bar button span:last-child {
-    display: none; /* icons only */
+  .has-dock-pager .pager-dock > div {
+    padding-right: 6.625rem;
+  }
+  .has-dock-pager .pager-dock .glass {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+}
+
+/* Landscape: the tab bar always sits flush at the bottom. */
+@media (orientation: landscape) {
+  .tab-bar > div {
+    padding-bottom: 0;
   }
 }
 

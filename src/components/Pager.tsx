@@ -44,7 +44,7 @@ export function Pager({ page, pageCount, onChange, disabled, dock }: Props) {
   };
 
   const controls = (
-    <div className="flex items-center justify-center gap-1.5">
+    <div className="flex items-center justify-center gap-1 sm:gap-1.5">
       <PagerBtn label={t('pager.first')} onClick={() => go(0)} disabled={disabled || atStart}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 18l-6-6 6-6M19 18l-6-6 6-6" /></svg>
       </PagerBtn>
@@ -58,7 +58,7 @@ export function Pager({ page, pageCount, onChange, disabled, dock }: Props) {
           setJumpOpen(true);
         }}
         disabled={disabled}
-        className="px-3 h-9 rounded-lg border border-line bg-surface-2 text-sm font-medium tabular-nums hover:border-accent/50"
+        className="px-2.5 sm:px-3 h-9 whitespace-nowrap rounded-lg border border-line bg-surface-2 text-sm font-medium tabular-nums hover:border-accent/50"
       >
         {page + 1} <span className="text-ink-dim">/ {pageCount}</span>
       </button>
@@ -142,7 +142,7 @@ function PagerBtn({
       onClick={onClick}
       disabled={disabled}
       className={cx(
-        'h-9 w-9 grid place-items-center rounded-lg border border-line bg-surface-2',
+        'h-9 w-8 sm:w-9 grid place-items-center rounded-lg border border-line bg-surface-2',
         'hover:border-accent/50 disabled:opacity-40 disabled:pointer-events-none'
       )}
     >
