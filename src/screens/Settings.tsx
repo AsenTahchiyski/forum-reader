@@ -5,8 +5,8 @@ import { Field } from '../components/Field';
 import { Header } from '../components/Header';
 import { Modal } from '../components/Modal';
 import { LoadingScreen } from '../components/Spinner';
-import { deleteForum, updateSettings } from '../db/db';
-import type { ThemeMode } from '../db/types';
+import { deleteForum, updateForum, updateSettings } from '../db/db';
+import type { ForumAccount, ThemeMode } from '../db/types';
 import { dropAllConnections, dropConnection } from '../forum/connection';
 import { PRESET_ACCENTS } from '../lib/color';
 import { cx } from '../lib/cx';
@@ -52,6 +52,7 @@ export function Settings() {
 
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [blockedForumId, setBlockedForumId] = useState<number | null>(null);
 
   useEffect(() => {
     if (settings) {
@@ -230,6 +231,14 @@ export function Settings() {
                     <p className="text-xs text-ink-dim truncate">{hostOf(f.baseUrl)}</p>
                   </div>
                   <button
+                    onClick={() => setBlockedForumId(f.id!)}
+                    className="text-sm text-ink-dim px-2 py-1"
+                  >
+                    {f.blockedUsers?.length
+                      ? t('settings.blockedCount', { n: f.blockedUsers.length })
+                      : t('settings.blocked')}
+                  </button>
+                  <button
                     onClick={() => setConfirmDelete({ id: f.id!, name: f.name })}
                     className="text-sm text-[rgb(255,107,107)] px-2 py-1"
                   >
@@ -258,6 +267,11 @@ export function Settings() {
 
         <p className="text-center text-xs text-ink-dim pb-4">{t('settings.footer')}</p>
       </div>
+
+      <BlockedModal
+        forum={forums.find((f) => f.id === blockedForumId) ?? null}
+        onClose={() => setBlockedForumId(null)}
+      />
 
       {/* Confirm: delete forum */}
       <Modal
@@ -299,6 +313,78 @@ export function Settings() {
         </div>
       </Modal>
     </div>
+  );
+}
+
+/** Per-forum list of usernames whose posts are hidden in threads. */
+function BlockedModal({ forum, onClose }: { forum: ForumAccount | null; onClose: () => void }) {
+  const [name, setName] = useState('');
+  const blocked = forum?.blockedUsers ?? [];
+
+  const save = (list: string[]) => updateForum(forum!.id!, { blockedUsers: list });
+
+  const add = async () => {
+    const n = name.trim();
+    if (!n) return;
+    if (!blocked.some((b) => b.toLowerCase() === n.toLowerCase())) await save([...blocked, n]);
+    setName('');
+  };
+
+  const close = () => {
+    setName('');
+    onClose();
+  };
+
+  return (
+    <Modal open={!!forum} onClose={close} title={t('settings.blocked')}>
+      <p className="text-sm text-ink-dim">{t('settings.blockedHint')}</p>
+      <form
+        className="flex items-center gap-2 mt-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          add();
+        }}
+      >
+        <div className="flex-1 min-w-0">
+          <Field
+            placeholder={t('settings.blockedPlaceholder')}
+            autoCapitalize="none"
+            autoCorrect="off"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <Button type="submit" size="sm" className="shrink-0" disabled={!name.trim()}>
+          {t('settings.blockedAdd')}
+        </Button>
+      </form>
+      {blocked.length === 0 ? (
+        <p className="text-sm text-ink-dim mt-3">{t('settings.blockedNone')}</p>
+      ) : (
+        <ul className="flex flex-wrap gap-2 mt-3">
+          {blocked.map((b) => (
+            <li
+              key={b}
+              className="flex items-center gap-1 rounded-full border border-line bg-surface pl-3 pr-1 h-8 text-sm"
+            >
+              <span className="truncate max-w-[12rem]">{b}</span>
+              <button
+                aria-label={t('settings.unblock', { name: b })}
+                onClick={() => save(blocked.filter((x) => x !== b))}
+                className="h-6 w-6 grid place-items-center rounded-full text-ink-dim hover:bg-[rgb(var(--line)/0.6)]"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex justify-end mt-4">
+        <Button variant="ghost" size="sm" onClick={close}>
+          {t('common.close')}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 

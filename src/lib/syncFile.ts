@@ -42,6 +42,7 @@ interface SyncedForum {
   username: string;
   avatarUrl?: string;
   brandColor?: string;
+  blockedUsers?: string[];
   createdAt: number;
 }
 
@@ -132,6 +133,10 @@ function normalize(raw: unknown): SyncContent {
         username: String(f.username),
         avatarUrl: f.avatarUrl ? String(f.avatarUrl) : undefined,
         brandColor: f.brandColor ? String(f.brandColor) : undefined,
+        blockedUsers:
+          Array.isArray(f.blockedUsers) && f.blockedUsers.length
+            ? f.blockedUsers.map(String)
+            : undefined,
         createdAt: Number(f.createdAt) || 0
       }))
   };
@@ -207,6 +212,7 @@ async function applyContent(c: SyncContent, mode: 'replace' | 'merge'): Promise<
           baseUrl: f.baseUrl,
           avatarUrl: f.avatarUrl,
           brandColor: f.brandColor,
+          blockedUsers: f.blockedUsers,
           updatedAt: now
         });
       } else {

@@ -63,6 +63,8 @@ export interface ForumAccount {
   avatarUrl?: string;
   /** Accent color sniffed from the forum's get_config (best effort). */
   brandColor?: string;
+  /** Usernames whose posts are hidden in threads (matched case-insensitively). */
+  blockedUsers?: string[];
   createdAt: number;
   updatedAt: number;
 }

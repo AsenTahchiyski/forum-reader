@@ -15,6 +15,7 @@ import { formatWhen } from '../lib/time';
 import { goToProfile } from '../lib/profile';
 import { normalizeYouTubeLinks } from '../lib/url';
 import { useAsync } from '../hooks/useAsync';
+import { useForum } from '../hooks/useForums';
 import { useSettings } from '../hooks/useSettings';
 
 const PAGE_SIZE = 20;
@@ -33,6 +34,7 @@ export function Thread() {
   const accountId = Number(forumId);
   const st = (useLocation().state as NavState | null) ?? {};
   const settings = useSettings();
+  const forum = useForum(accountId);
   const navigate = useNavigate();
 
   // Best estimate of total posts before the first response: replies + opening post.
@@ -314,6 +316,7 @@ export function Thread() {
 
   const showMedia = settings?.showMedia ?? true;
   const posts = data?.posts ?? [];
+  const blocked = new Set((forum?.blockedUsers ?? []).map((u) => u.toLowerCase()));
 
   return (
     <div className="pb-2">
@@ -326,6 +329,11 @@ export function Thread() {
           <div className="space-y-3">
             {posts.map((post, i) => {
               const number = page * PAGE_SIZE + i + 1;
+              // Blocked author: drop the post but keep a zero-height anchor so
+              // numbering and landing/jump scrolls still resolve.
+              if (blocked.has(post.author.toLowerCase())) {
+                return <div key={post.id || i} id={`post-${number}`} className="scroll-mt-16 !mt-0" />;
+              }
               return (
                 <article
                   key={post.id || i}
