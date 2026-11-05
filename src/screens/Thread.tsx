@@ -236,6 +236,19 @@ export function Thread() {
     window.scrollTo({ top: 0 });
   }, [page]);
 
+  // Composer preview (reply or edit — only one editor is open at a time).
+  const [preview, setPreview] = useState(false);
+  const previewToggle = (busy: boolean) => (
+    <Button variant="ghost" size="sm" onClick={() => setPreview((v) => !v)} disabled={busy} className="mr-auto">
+      {preview ? t('compose.write') : t('compose.preview')}
+    </Button>
+  );
+  const previewBox = (text: string) => (
+    <div className="min-h-[7rem] rounded-xl border border-line p-3">
+      <PostContent content={normalizeYouTubeLinks(text)} showMedia={showMedia} forumId={forumId} source />
+    </div>
+  );
+
   const changePage = (p: number) => {
     if (p === page) return;
     setReplyOpen(false);
@@ -258,6 +271,7 @@ export function Thread() {
       if (!res.ok) throw new Error(res.message || t('thread.rejectedReply'));
       setBody('');
       setReplyOpen(false);
+      setPreview(false);
       const last = pageCount - 1;
       if (page === last) reload();
       else setPage(last);
@@ -272,6 +286,7 @@ export function Thread() {
   // other edit are closed first so only one editor is open at a time.
   const startEdit = async (postId: string) => {
     setReplyOpen(false);
+    setPreview(false);
     setEditingId(postId);
     setEditBody('');
     setEditError(null);
@@ -290,6 +305,7 @@ export function Thread() {
   };
 
   const cancelEdit = () => {
+    setPreview(false);
     setEditingId(null);
     setEditBody('');
     setEditError(null);
@@ -380,18 +396,25 @@ export function Thread() {
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          <FormatBar textareaRef={editRef} value={editBody} onChange={setEditBody} />
-                          <TextArea
-                            ref={editRef}
-                            autoFocus
-                            placeholder={t('thread.editPlaceholder')}
-                            value={editBody}
-                            onChange={(e) => setEditBody(e.target.value)}
-                          />
+                          {preview ? (
+                            previewBox(editBody)
+                          ) : (
+                            <>
+                              <FormatBar textareaRef={editRef} value={editBody} onChange={setEditBody} />
+                              <TextArea
+                                ref={editRef}
+                                autoFocus
+                                placeholder={t('thread.editPlaceholder')}
+                                value={editBody}
+                                onChange={(e) => setEditBody(e.target.value)}
+                              />
+                            </>
+                          )}
                           {editError && (
                             <p className="text-sm text-[rgb(255,107,107)]">{editError}</p>
                           )}
                           <div className="flex gap-2 justify-end">
+                            {previewToggle(editSaving)}
                             <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={editSaving}>
                               {t('common.cancel')}
                             </Button>
@@ -463,17 +486,32 @@ export function Thread() {
             <div className="mt-4">
               {replyOpen ? (
                 <div className="rounded-2xl border border-line bg-surface-2 p-3 space-y-3">
-                  <FormatBar textareaRef={replyRef} value={body} onChange={setBody} />
-                  <TextArea
-                    ref={replyRef}
-                    autoFocus
-                    placeholder={t('thread.replyPlaceholder')}
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                  />
+                  {preview ? (
+                    previewBox(body)
+                  ) : (
+                    <>
+                      <FormatBar textareaRef={replyRef} value={body} onChange={setBody} />
+                      <TextArea
+                        ref={replyRef}
+                        autoFocus
+                        placeholder={t('thread.replyPlaceholder')}
+                        value={body}
+                        onChange={(e) => setBody(e.target.value)}
+                      />
+                    </>
+                  )}
                   {postError && <p className="text-sm text-[rgb(255,107,107)]">{postError}</p>}
                   <div className="flex gap-2 justify-end">
-                    <Button variant="ghost" size="sm" onClick={() => setReplyOpen(false)} disabled={posting}>
+                    {previewToggle(posting)}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setReplyOpen(false);
+                        setPreview(false);
+                      }}
+                      disabled={posting}
+                    >
                       {t('common.cancel')}
                     </Button>
                     <Button size="sm" onClick={submitReply} disabled={posting || !body.trim()}>

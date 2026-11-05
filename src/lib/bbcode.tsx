@@ -331,9 +331,9 @@ function embedYouTube(html: string): string {
   return html;
 }
 
-function buildHtml(raw: string, showMedia: boolean, forumId?: string): string {
-  let html = hasBBCode(raw) && !looksLikeHtml(raw) ? bbcodeToHtml(raw, true, forumId) : raw;
-  if (hasBBCode(raw) && looksLikeHtml(raw)) html = bbcodeToHtml(raw, false, forumId); // mixed → normalize, keep real HTML tags
+function buildHtml(raw: string, showMedia: boolean, forumId?: string, source?: boolean): string {
+  let html = source || (hasBBCode(raw) && !looksLikeHtml(raw)) ? bbcodeToHtml(raw, true, forumId) : raw;
+  if (!source && hasBBCode(raw) && looksLikeHtml(raw)) html = bbcodeToHtml(raw, false, forumId); // mixed → normalize, keep real HTML tags
 
   html = embedYouTube(html);
   html = replaceSmilies(html);
@@ -367,14 +367,17 @@ interface Props {
   showMedia: boolean;
   /** Forum account id; enables quote cites to link to their quoted post. */
   forumId?: string;
+  /** Content is the user's own BBCode source (composer preview): always
+   *  escape it and render line breaks, even with no tags in it. */
+  source?: boolean;
 }
 
-export function PostContent({ content, showMedia, forumId }: Props) {
+export function PostContent({ content, showMedia, forumId, source }: Props) {
   // Cite/spoiler labels depend on the active language, so it's a memo input.
   const lang = useLang();
   const html = useMemo(
-    () => buildHtml(content, showMedia, forumId),
-    [content, showMedia, forumId, lang]
+    () => buildHtml(content, showMedia, forumId, source),
+    [content, showMedia, forumId, source, lang]
   );
   const ref = useRef<HTMLDivElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
