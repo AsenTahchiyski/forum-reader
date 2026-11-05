@@ -9,6 +9,7 @@ import { TextArea } from '../components/Field';
 import { LoadingScreen, Spinner } from '../components/Spinner';
 import { Pager } from '../components/Pager';
 import { getClient } from '../forum/connection';
+import type { Poll } from '../forum/types';
 import { PostContent, quotePost } from '../lib/bbcode';
 import { t } from '../lib/i18n';
 import { formatWhen } from '../lib/time';
@@ -145,6 +146,13 @@ export function Thread() {
       return client.getThread(topicId!, page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
     },
     [accountId, topicId, page]
+  );
+
+  // Polls aren't in get_thread; fetch once per topic, not per page.
+  const isPoll = !!data?.isPoll;
+  const { data: poll } = useAsync(
+    async () => (isPoll ? (await getClient(accountId)).getPoll(topicId!) : null),
+    [accountId, topicId, isPoll]
   );
 
   const total =
@@ -327,6 +335,7 @@ export function Thread() {
       {data && (
         <div className="mx-auto max-w-4xl p-4">
           <div className="space-y-3">
+            {poll && <PollCard poll={poll} />}
             {posts.map((post, i) => {
               const number = page * PAGE_SIZE + i + 1;
               // Blocked author: drop the post but keep a zero-height anchor so
@@ -486,5 +495,65 @@ export function Thread() {
         </div>
       )}
     </div>
+  );
+}
+
+function PollCard({ poll }: { poll: Poll }) {
+  const hasCounts = poll.options.some((o) => o.votes != null);
+  const max = Math.max(1, ...poll.options.map((o) => o.votes ?? 0));
+  const link = (label: string) => (
+    <a
+      href={poll.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-sm font-medium text-accent hover:underline"
+    >
+      {label}
+    </a>
+  );
+
+  if (!poll.question) {
+    return (
+      <section className="rounded-2xl border border-line bg-surface-2 p-3 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold">{t('poll.title')}</h2>
+        {link(t('poll.open'))}
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border border-line bg-surface-2 p-4 space-y-3">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-ink-dim">{t('poll.title')}</p>
+        <h2 className="font-semibold">{poll.question}</h2>
+      </div>
+      <ul className="space-y-2">
+        {poll.options.map((o, i) => (
+          <li key={i}>
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="min-w-0">{o.name}</span>
+              {o.votes != null && (
+                <span className="shrink-0 tabular-nums text-ink-dim">
+                  {o.votes}
+                  {o.percent != null && ` (${o.percent}%)`}
+                </span>
+              )}
+            </div>
+            {hasCounts && (
+              <div className="mt-1 h-1.5 rounded-full bg-line overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${o.percent ?? ((o.votes ?? 0) / max) * 100}%` }}
+                />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      {poll.totalVotes != null && (
+        <p className="text-xs text-ink-dim">{t('poll.total', { n: poll.totalVotes })}</p>
+      )}
+      {!hasCounts && link(t('poll.vote'))}
+    </section>
   );
 }

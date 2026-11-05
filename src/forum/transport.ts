@@ -49,6 +49,35 @@ function mergeCookies(existing: string | undefined, incoming: string): string {
     .join('; ');
 }
 
+/** Relay headers for a call, including the cached forum session cookie. */
+function relayHeaders(ctx: CallContext, target: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'text/xml',
+    'X-Forum-Mobiquo-Url': target
+  };
+  if (ctx.relayToken) headers['Authorization'] = `Bearer ${ctx.relayToken}`;
+  const cached = sessions.get(ctx.sessionKey);
+  if (cached) headers['X-Forum-Session'] = cached;
+  return headers;
+}
+
+/**
+ * Fetch an ordinary forum web page (same host as the mobiquo endpoint) through
+ * the relay, with the forum session. The relay always POSTs; an empty POST to
+ * a read-only page renders it as a GET would. Used for data the mobiquo plugin
+ * doesn't expose (e.g. polls).
+ */
+export async function fetchPage(ctx: CallContext, url: string): Promise<string> {
+  if (!ctx.proxyBaseUrl) throw new Error('No relay URL configured. Add one in Settings.');
+  const res = await fetch(ctx.proxyBaseUrl, {
+    method: 'POST',
+    headers: relayHeaders(ctx, url),
+    body: ''
+  });
+  if (!res.ok) throw new Error(`Relay error ${res.status}.`);
+  return res.text();
+}
+
 export async function rpc(
   ctx: CallContext,
   method: string,
@@ -58,14 +87,8 @@ export async function rpc(
     throw new Error('No relay URL configured. Add one in Settings.');
   }
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'text/xml',
-    'X-Forum-Mobiquo-Url': ctx.mobiquoUrl
-  };
-  if (ctx.relayToken) headers['Authorization'] = `Bearer ${ctx.relayToken}`;
-
+  const headers = relayHeaders(ctx, ctx.mobiquoUrl);
   const cached = sessions.get(ctx.sessionKey);
-  if (cached) headers['X-Forum-Session'] = cached;
 
   let res: Response;
   try {

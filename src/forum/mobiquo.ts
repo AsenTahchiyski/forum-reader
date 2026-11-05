@@ -7,13 +7,15 @@
  * that must be base64 are wrapped with `b64()`.
  */
 import { b64, type XmlRpcValue } from '../lib/xmlrpc';
-import { rpc, type CallContext } from './transport';
+import { fetchPage, rpc, type CallContext } from './transport';
 import type {
   ForumConfig,
   ForumNode,
   LoginResult,
   PmBox,
   PmSummary,
+  Poll,
+  PollOption,
   Post,
   PrivateMessage,
   Thread,
@@ -107,6 +109,17 @@ export class MobiquoClient {
     } catch {
       return u;
     }
+  }
+
+  private versionPromise?: Promise<string>;
+
+  /** The plugin's engine/version string from get_config (e.g. "sm-2a"), cached. */
+  private version(): Promise<string> {
+    this.versionPromise ??= this.getConfig().then(
+      (c) => c.version || '',
+      () => ''
+    );
+    return this.versionPromise;
   }
 
   private call(method: string, params: unknown[] = []) {
@@ -323,7 +336,60 @@ export class MobiquoClient {
       title: pickStr(s, ['topic_title', 'title']),
       totalPosts: pickInt(s, ['total_post_num', 'total_post_count']),
       canReply: pickBool(s, ['can_reply'], true),
+      isPoll: pickBool(s, ['is_poll']),
       posts: asArray(s.posts).map((p) => this.mapPost(asStruct(p)))
+    };
+  }
+
+  /**
+   * A topic's poll. Mobiquo only flags polls (get_thread's is_poll) without
+   * their contents, so for SMF we read the poll from the topic's web page.
+   * Other engines get just the page URL, for the UI to link to.
+   */
+  async getPoll(topicId: string): Promise<Poll> {
+    const engine = await this.version();
+    if (/^vb/i.test(engine)) {
+      return { url: `${this.forumBase}showthread.php?t=${topicId}`, question: '', options: [] };
+    }
+    if (/^pb/i.test(engine)) {
+      return { url: `${this.forumBase}viewtopic.php?t=${topicId}`, question: '', options: [] };
+    }
+    const url = `${this.forumBase}index.php?topic=${topicId}.0`;
+    const doc = new DOMParser().parseFromString(await fetchPage(this.ctx, url), 'text/html');
+    const box = doc.querySelector('#poll_options');
+    const question = doc.querySelector('#pollquestion')?.textContent?.trim() || '';
+    if (!box || !question) return { url, question: '', options: [] };
+
+    const text = (el: Element | null) => (el?.textContent || '').replace(/\s+/g, ' ').trim();
+    let options: PollOption[] = [];
+    // Results view: <dt>name</dt><dd>… <span class="percentage">8 (61.5%)</span></dd>
+    for (const dt of Array.from(box.querySelectorAll('dl.options > dt'))) {
+      const m = text(dt.nextElementSibling?.querySelector('.percentage') ?? null).match(
+        /(\d+)\s*\(([\d.,]+)\s*%\)/
+      );
+      options.push({
+        name: text(dt),
+        votes: m ? Number(m[1]) : undefined,
+        percent: m ? Number(m[2].replace(',', '.')) : undefined
+      });
+    }
+    // Voting form (results hidden until the user votes): labelled inputs.
+    if (!options.length) {
+      options = Array.from(box.querySelectorAll('label[for^="options"]')).map((l) => ({
+        name: text(l)
+      }));
+    }
+    const hasCounts = options.some((o) => o.votes != null);
+    const total = hasCounts
+      ? Array.from(box.querySelectorAll('p'))
+          .map((p) => text(p).match(/(\d+)\s*$/))
+          .find(Boolean)
+      : null;
+    return {
+      url,
+      question,
+      options,
+      totalVotes: total ? Number(total[1]) : undefined
     };
   }
 

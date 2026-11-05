@@ -109,6 +109,10 @@ const en = {
 
   // Thread
   'thread.topic': 'Topic',
+  'poll.title': 'Poll',
+  'poll.total': 'Total votes: {n}',
+  'poll.vote': 'Vote on the forum',
+  'poll.open': 'Open the poll on the forum',
   'thread.loadingPosts': 'Loading posts…',
   'thread.edit': 'Edit',
   'thread.quote': 'Quote',
@@ -362,6 +366,10 @@ const bg: Record<MsgKey, string> = {
   'newPosts.caughtUp': 'Всичко е прочетено — няма непрочетени теми.',
 
   'thread.topic': 'Тема',
+  'poll.title': 'Анкета',
+  'poll.total': 'Общо гласове: {n}',
+  'poll.vote': 'Гласувай във форума',
+  'poll.open': 'Отвори анкетата във форума',
   'thread.loadingPosts': 'Зареждане на публикациите…',
   'thread.edit': 'Редактирай',
   'thread.quote': 'Цитирай',

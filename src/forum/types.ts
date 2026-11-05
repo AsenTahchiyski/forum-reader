@@ -73,6 +73,24 @@ export interface Thread {
   posts: Post[];
   totalPosts: number;
   canReply: boolean;
+  /** The topic has a poll (its contents come from getPoll). */
+  isPoll: boolean;
+}
+
+export interface Poll {
+  /** The topic's page on the forum website. */
+  url: string;
+  /** Empty when the poll couldn't be read from the page (unsupported engine). */
+  question: string;
+  options: PollOption[];
+  /** Absent when results are hidden (e.g. the user hasn't voted yet). */
+  totalVotes?: number;
+}
+
+export interface PollOption {
+  name: string;
+  votes?: number;
+  percent?: number;
 }
 
 export interface PmBox {
