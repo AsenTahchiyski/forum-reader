@@ -88,10 +88,32 @@ textarea {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Docked pagination shares the tab bar's line instead of stacking above it:
-   both sit flush at the viewport bottom (only the safe-area below), the pager
-   pinned right with the tab bar collapsed to an icons-only pill beside it, so
-   the nav and page controls read as one bottom-right cluster. */
+/* Compact tab bar (everywhere except a forum's section list): an icons-only
+   pill flush at the bottom-right. A docked pager sits on the same line to its
+   left, so nav and page controls read as one bottom-right cluster. */
+.tab-bar.compact {
+  pointer-events: none; /* the nav spans the full width; only the pill takes taps */
+}
+.tab-bar.compact > div {
+  margin-left: auto;
+  margin-right: 0;
+  max-width: 9rem;
+  padding-bottom: 0;
+}
+.tab-bar.compact .glass {
+  height: 2.75rem;
+  pointer-events: auto;
+}
+.tab-bar.compact button {
+  flex-direction: row;
+  justify-content: center; /* re-center the icon so the active bg wraps it */
+  height: 100%;
+  padding: 0 0.5rem;
+}
+.tab-bar.compact button span:last-child {
+  display: none; /* icons only */
+}
+
 .pager-dock {
   bottom: env(safe-area-inset-bottom);
 }
@@ -102,43 +124,14 @@ textarea {
   justify-content: flex-end;
   align-items: flex-end;
   padding-bottom: 0;
-}
-.has-dock-pager .tab-bar > div {
-  margin-left: auto;
-  margin-right: 0;
-  max-width: 9rem;
-  padding-bottom: 0;
-}
-.has-dock-pager .pager-dock > div {
   padding-right: 8.5rem; /* clear the tab pill sitting to its right */
 }
-.has-dock-pager .tab-bar .glass,
-.has-dock-pager .pager-dock .glass {
+.pager-dock .glass {
   height: 2.75rem;
-}
-.has-dock-pager .pager-dock .glass {
   display: flex;
   align-items: center;
   padding-top: 0;
   padding-bottom: 0;
-}
-.has-dock-pager .tab-bar button {
-  flex-direction: row;
-  justify-content: center; /* re-center the icon so the active bg wraps it */
-  height: 100%;
-  padding: 0 0.5rem;
-}
-.has-dock-pager .tab-bar button span:last-child {
-  display: none; /* icons only */
-}
-
-/* The tab bar's nav spans the full width over the pager's row; only its
-   pill should take taps. */
-.has-dock-pager .tab-bar {
-  pointer-events: none;
-}
-.has-dock-pager .tab-bar .glass {
-  pointer-events: auto;
 }
 
 /* Portrait: one full-width bar at the bottom — page controls on the left, the
@@ -158,15 +151,15 @@ textarea {
     justify-content: flex-start;
     padding-right: 0;
   }
-  .has-dock-pager .tab-bar {
+  .has-dock-pager .tab-bar.compact {
     padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
   }
-  .has-dock-pager .tab-bar > div {
+  .has-dock-pager .tab-bar.compact > div {
     max-width: none;
     width: fit-content;
     padding: 0 0.5rem;
   }
-  .has-dock-pager .tab-bar .glass,
+  .has-dock-pager .tab-bar.compact .glass,
   .has-dock-pager .pager-dock .glass {
     height: 2.25rem;
     padding: 0;
@@ -175,9 +168,6 @@ textarea {
     background: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-  }
-  .has-dock-pager .tab-bar button {
-    padding: 0 0.5rem;
   }
 }
 

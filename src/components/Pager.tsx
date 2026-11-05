@@ -20,8 +20,8 @@ export function Pager({ page, pageCount, onChange, disabled, dock }: Props) {
   const [jumpOpen, setJumpOpen] = useState(false);
   const [value, setValue] = useState('');
 
-  // While a docked pager is on screen, flag the root so landscape CSS can tuck
-  // the tab bar aside to share the bottom line (see .has-dock-pager in index.css).
+  // While a docked pager is on screen, flag the root so phone-portrait CSS can
+  // merge it and the tab icons into one full-width bar (see index.css).
   const docked = !!dock && pageCount > 1;
   useEffect(() => {
     if (!docked) return;

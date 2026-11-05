@@ -6,7 +6,7 @@ import { t } from '../lib/i18n';
 
 type TabId = 'forums' | 'messages' | 'settings';
 
-const ICONS: Record<TabId, React.ReactNode> = {
+export const TAB_ICONS: Record<TabId, React.ReactNode> = {
   forums: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="4" width="18" height="13" rx="2.5" />
@@ -44,6 +44,11 @@ export function TabBar() {
       ? 'messages'
       : 'forums';
 
+  // The forum list only needs Settings, which its header links to.
+  if (pathname.startsWith('/forums')) return null;
+  // Full labelled tabs only on a forum's section list; compact pill elsewhere.
+  const compact = !/^\/f\/[^/]+\/?$/.test(pathname);
+
   const go = (id: TabId) => {
     if (id === 'settings') return navigate('/settings');
     if (id === 'forums') return navigate('/forums');
@@ -52,7 +57,7 @@ export function TabBar() {
   };
 
   return (
-    <nav aria-label="Primary" className="tab-bar fixed bottom-0 inset-x-0 z-30">
+    <nav aria-label="Primary" className={cx('tab-bar fixed bottom-0 inset-x-0 z-30', compact && 'compact')}>
       <div className="mx-auto max-w-md px-3 pb-3">
         <div className="glass border border-line rounded-2xl shadow-[0_-2px_30px_-10px_rgb(0_0_0/0.2)] flex">
           {TABS.map((tab) => {
@@ -74,7 +79,7 @@ export function TabBar() {
                     transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                   />
                 )}
-                <span className="relative">{ICONS[tab]}</span>
+                <span className="relative">{TAB_ICONS[tab]}</span>
                 <span className="relative">{t(TAB_LABELS[tab])}</span>
               </button>
             );

@@ -4,6 +4,7 @@ import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
 import { Field } from '../components/Field';
 import { Header } from '../components/Header';
+import { TAB_ICONS } from '../components/TabBar';
 import { Modal } from '../components/Modal';
 import { LoadingScreen, Spinner } from '../components/Spinner';
 import { updateForum, updateSettings } from '../db/db';
@@ -49,15 +50,24 @@ export function Forums() {
       <Header
         title={t('forums.title')}
         right={
-          <button
-            aria-label={t('forums.add')}
-            onClick={() => navigate('/forums/add')}
-            className="h-10 w-10 grid place-items-center rounded-full text-accent hover:bg-[rgb(var(--accent)/0.12)]"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
+          <>
+            <button
+              aria-label={t('tabs.settings')}
+              onClick={() => navigate('/settings')}
+              className="h-10 w-10 grid place-items-center rounded-full text-ink hover:bg-[rgb(var(--line)/0.6)]"
+            >
+              {TAB_ICONS.settings}
+            </button>
+            <button
+              aria-label={t('forums.add')}
+              onClick={() => navigate('/forums/add')}
+              className="h-10 w-10 grid place-items-center rounded-full text-accent hover:bg-[rgb(var(--accent)/0.12)]"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          </>
         }
       />
 
