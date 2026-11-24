@@ -54,6 +54,8 @@ const en = {
   'format.link': 'Link',
   'format.image': 'Image',
   'format.spoiler': 'Spoiler',
+  'media.fbVideo': 'Facebook video',
+  'media.fbReel': 'Facebook reel',
   'format.aria': 'Formatting',
 
   // Tab bar
@@ -320,6 +322,8 @@ const bg: Record<MsgKey, string> = {
   'format.link': 'Връзка',
   'format.image': 'Изображение',
   'format.spoiler': 'Спойлер',
+  'media.fbVideo': 'Видео във Facebook',
+  'media.fbReel': 'Рийл във Facebook',
   'format.aria': 'Форматиране',
 
   'tabs.forums': 'Форуми',

@@ -307,7 +307,49 @@ textarea {
   border-radius: 12px;
   overflow: hidden;
 }
-.post-content .yt-frame iframe {
+/* Click-to-load Facebook video / reel (no thumbnail available) */
+.post-content .fb-embed {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  margin: 0.5rem 0;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(135deg, #1877f2, #0b3d91);
+  transition: filter 0.15s ease;
+}
+.post-content .fb-embed:hover {
+  filter: brightness(1.12);
+}
+.post-content .fb-embed .fb-play {
+  font-size: 2rem;
+  line-height: 1;
+}
+.post-content .fb-embed .fb-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.post-content .fb-reel {
+  aspect-ratio: 9 / 16;
+  max-width: 320px;
+}
+.post-content .fb-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  margin: 0.5rem 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.post-content .fb-frame.fb-reel {
+  aspect-ratio: 9 / 16;
+}
+.post-content .yt-frame iframe,
+.post-content .fb-frame iframe {
   position: absolute;
   inset: 0;
   width: 100%;

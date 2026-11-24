@@ -37,6 +37,39 @@ function ytPlaceholder(id: string): string {
   );
 }
 
+/**
+ * Recognize a Facebook video or reel link. Returns the URL to hand the video
+ * embed plugin (numeric ids are normalized to /watch/?v=; short fb.watch and
+ * /share/ links are passed through for Facebook to resolve) and whether it's
+ * a vertical reel. Facebook offers no keyless thumbnail, so the placeholder
+ * is a plain card.
+ */
+export function facebookVideo(url: string): { href: string; reel: boolean } | null {
+  const u = url.replace(/&amp;/g, '&');
+  const host = String.raw`https?:\/\/(?:(?:www|m|web)\.)?facebook\.com\/`;
+  let m = u.match(new RegExp(host + String.raw`reel\/(\d+)`, 'i'));
+  if (m) return { href: `https://www.facebook.com/watch/?v=${m[1]}`, reel: true };
+  m =
+    u.match(new RegExp(host + String.raw`(?:watch\/?|video\.php)\?(?:[^#\s"]*&)?v=(\d+)`, 'i')) ||
+    u.match(new RegExp(host + String.raw`[^/?#\s"]+\/videos\/(?:[^/?#\s"]+\/)?(\d+)`, 'i'));
+  if (m) return { href: `https://www.facebook.com/watch/?v=${m[1]}`, reel: false };
+  m = u.match(new RegExp(host + String.raw`share\/([vr])\/[\w-]+\/?`, 'i'));
+  if (m) return { href: m[0], reel: m[1].toLowerCase() === 'r' };
+  m = u.match(/https?:\/\/fb\.watch\/[\w-]+\/?/i);
+  if (m) return { href: m[0], reel: false };
+  return null;
+}
+
+function fbPlaceholder(v: { href: string; reel: boolean }): string {
+  const label = t(v.reel ? 'media.fbReel' : 'media.fbVideo');
+  return (
+    `<a class="fb-embed${v.reel ? ' fb-reel' : ''}" data-fb="${escapeHtml(v.href)}" ` +
+    `href="${escapeHtml(v.href)}" target="_blank" rel="noopener noreferrer">` +
+    `<span class="fb-play" aria-hidden="true">►</span>` +
+    `<span class="fb-label">${escapeHtml(label)}</span></a>`
+  );
+}
+
 const looksLikeHtml = (s: string) => /<\/?[a-z][\s\S]*>/i.test(s);
 const hasBBCode = (s: string) => /\[[a-z*][^\]]*\]/i.test(s);
 
@@ -303,7 +336,9 @@ function bbcodeToHtml(input: string, escape = true, forumId?: string): string {
       /\[(?:youtube|video)\]([\s\S]*?)\[\/(?:youtube|video)\]/gi,
       (_m, body) => {
         const id = youTubeId(body) || (/^[\w-]{11}$/.test(body) ? body : null);
-        return id ? ytPlaceholder(id) : escapeHtml(body);
+        if (id) return ytPlaceholder(id);
+        const fb = facebookVideo(body);
+        return fb ? fbPlaceholder(fb) : escapeHtml(body);
       }
     );
 
@@ -331,11 +366,31 @@ function embedYouTube(html: string): string {
   return html;
 }
 
+/** Replace <a href="…facebook video…"> and bare Facebook video links with embeds. */
+function embedFacebook(html: string): string {
+  html = html.replace(
+    /<a\b[^>]*href="([^"]*(?:facebook\.com|fb\.watch)[^"]*)"[^>]*>[\s\S]*?<\/a>/gi,
+    (whole, href) => {
+      const v = facebookVideo(href);
+      return v ? fbPlaceholder(v) : whole;
+    }
+  );
+  html = html.replace(
+    /(^|[\s>])(https?:\/\/(?:(?:www|m|web)\.)?(?:facebook\.com|fb\.watch)\/[^\s<]*)/gi,
+    (whole, pre, url) => {
+      const v = facebookVideo(url);
+      return v ? `${pre}${fbPlaceholder(v)}` : whole;
+    }
+  );
+  return html;
+}
+
 function buildHtml(raw: string, showMedia: boolean, forumId?: string, source?: boolean): string {
   let html = source || (hasBBCode(raw) && !looksLikeHtml(raw)) ? bbcodeToHtml(raw, true, forumId) : raw;
   if (!source && hasBBCode(raw) && looksLikeHtml(raw)) html = bbcodeToHtml(raw, false, forumId); // mixed → normalize, keep real HTML tags
 
   html = embedYouTube(html);
+  html = embedFacebook(html);
   html = replaceSmilies(html);
 
   if (!showMedia) {
@@ -348,6 +403,10 @@ function buildHtml(raw: string, showMedia: boolean, forumId?: string, source?: b
         /<a class="yt-embed" data-yt="([^"]*)"[\s\S]*?<\/a>/gi,
         '<a href="https://youtu.be/$1" target="_blank" rel="noopener noreferrer">[YouTube video]</a>'
       )
+      .replace(
+        /<a class="fb-embed[^"]*" data-fb="([^"]*)"[\s\S]*?<\/a>/gi,
+        '<a href="$1" target="_blank" rel="noopener noreferrer">[Facebook video]</a>'
+      )
       .replace(/<img\b[^>]*src="([^"]*)"[^>]*>/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">[image]</a>');
   }
 
@@ -357,7 +416,7 @@ function buildHtml(raw: string, showMedia: boolean, forumId?: string, source?: b
       'blockquote', 'cite', 'ul', 'ol', 'li', 'pre', 'code', 'img',
       'details', 'summary'
     ],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'class', 'data-yt', 'loading'],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'class', 'data-yt', 'data-fb', 'loading'],
     ALLOW_DATA_ATTR: false
   });
 }
@@ -400,6 +459,25 @@ export function PostContent({ content, showMedia, forumId, source }: Props) {
           `clipboard-write; encrypted-media; gyroscope; picture-in-picture" ` +
           `allowfullscreen></iframe>`;
         embed.replaceWith(frame);
+        return;
+      }
+      const fb = target.closest<HTMLElement>('.fb-embed');
+      if (fb) {
+        e.preventDefault();
+        const href = fb.getAttribute('data-fb');
+        if (!href) return;
+        const reel = fb.classList.contains('fb-reel');
+        const frame = document.createElement('div');
+        frame.className = reel ? 'fb-frame fb-reel' : 'fb-frame';
+        const iframe = document.createElement('iframe');
+        iframe.src =
+          'https://www.facebook.com/plugins/video.php?show_text=false&autoplay=true' +
+          `&width=${Math.round(fb.clientWidth) || 500}&href=${encodeURIComponent(href)}`;
+        iframe.title = reel ? 'Facebook reel' : 'Facebook video';
+        iframe.allow = 'autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share';
+        iframe.allowFullscreen = true;
+        frame.appendChild(iframe);
+        fb.replaceWith(frame);
         return;
       }
       // Smilies come through as tiny images; leave those alone.
