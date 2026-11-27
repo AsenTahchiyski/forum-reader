@@ -445,6 +445,13 @@ export function Thread() {
                               : t('post.lastEdit', { when: formatWhen(post.editTime) })}
                           </p>
                         )}
+                        <Signature
+                          accountId={accountId}
+                          author={post.author}
+                          authorId={post.authorId}
+                          showMedia={showMedia}
+                          forumId={forumId}
+                        />
                       </>
                     )}
                   </div>
@@ -532,6 +539,50 @@ export function Thread() {
           <Pager dock page={page} pageCount={pageCount} onChange={changePage} disabled={loading} />
         </div>
       )}
+    </div>
+  );
+}
+
+// get_thread doesn't carry signatures, so each author's comes from their
+// profile (get_user_info). Cached per forum + author for the session; failures
+// (e.g. profiles hidden from guests) cache as no signature.
+const signatures = new Map<string, Promise<string>>();
+
+function Signature({
+  accountId,
+  author,
+  authorId,
+  showMedia,
+  forumId
+}: {
+  accountId: number;
+  author: string;
+  authorId?: string;
+  showMedia: boolean;
+  forumId?: string;
+}) {
+  const key = `${accountId}:${authorId || author}`;
+  const [sig, setSig] = useState('');
+  useEffect(() => {
+    let p = signatures.get(key);
+    if (!p) {
+      p = getClient(accountId)
+        .then((c) => c.getUserInfo(author, authorId))
+        .then((u) => u.signature?.trim() || '')
+        .catch(() => '');
+      signatures.set(key, p);
+    }
+    let cancelled = false;
+    p.then((s) => !cancelled && setSig(s));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  if (!sig) return null;
+  return (
+    <div className="mt-3 pt-2 border-t border-line text-xs text-ink-dim">
+      <PostContent content={sig} showMedia={showMedia} forumId={forumId} />
     </div>
   );
 }
