@@ -342,6 +342,31 @@ export class MobiquoClient {
   }
 
   /**
+   * Post signatures (HTML) by post id. Mobiquo's get_thread doesn't carry
+   * them, so for SMF we read them from the topic's web page, fetching the page
+   * that holds each post not yet seen (`topic=T.msgP`). Posts without a
+   * signature are absent. Other engines return nothing.
+   */
+  async getSignatures(topicId: string, postIds: string[]): Promise<Record<string, string>> {
+    const out: Record<string, string> = {};
+    if (/^(vb|pb)/i.test(await this.version())) return out;
+    const seen = new Set<string>();
+    for (const id of postIds) {
+      if (seen.has(id)) continue;
+      const url = `${this.forumBase}index.php?topic=${topicId}.msg${id}`;
+      const doc = new DOMParser().parseFromString(await fetchPage(this.ctx, url), 'text/html');
+      for (const el of Array.from(doc.querySelectorAll('[id^="msg_"]'))) {
+        const m = el.id.match(/^msg_(\d+)(_signature)?$/);
+        if (!m) continue;
+        seen.add(m[1]);
+        if (m[2] && el.innerHTML.trim()) out[m[1]] = el.innerHTML.trim();
+      }
+      seen.add(id); // not on its own page (e.g. deleted): don't refetch
+    }
+    return out;
+  }
+
+  /**
    * A topic's poll. Mobiquo only flags polls (get_thread's is_poll) without
    * their contents, so for SMF we read the poll from the topic's web page.
    * Other engines get just the page URL, for the UI to link to.
