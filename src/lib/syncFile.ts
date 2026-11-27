@@ -58,6 +58,7 @@ interface SyncContent {
     accentColor: string;
     language?: Lang;
     showMedia: boolean;
+    showSignatures: boolean;
     readingScale?: number;
     proxyBaseUrl: string;
     favoriteForum: ForumRef | null;
@@ -117,6 +118,7 @@ function normalize(raw: unknown): SyncContent {
       accentColor: String(s.accentColor || '#7aa2ff'),
       language: s.language === 'en' || s.language === 'bg' ? s.language : undefined,
       showMedia: s.showMedia !== false,
+      showSignatures: s.showSignatures !== false,
       readingScale: typeof s.readingScale === 'number' ? s.readingScale : undefined,
       proxyBaseUrl: String(s.proxyBaseUrl || ''),
       favoriteForum:

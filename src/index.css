@@ -191,6 +191,10 @@ textarea {
   word-break: break-word;
   overflow-wrap: anywhere;
 }
+.post-signature .post-content {
+  font-size: calc(0.8rem * var(--reading-scale, 1));
+  line-height: 1.5;
+}
 .post-content p {
   margin: 0 0 0.75rem;
 }

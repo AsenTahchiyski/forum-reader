@@ -156,7 +156,8 @@ export function Thread() {
   );
 
   // Signatures aren't in get_thread either; read them per page (SMF only).
-  const postIds = (data?.posts ?? []).map((p) => p.id).join(',');
+  const showSignatures = settings ? settings.showSignatures !== false : false;
+  const postIds = showSignatures ? (data?.posts ?? []).map((p) => p.id).join(',') : '';
   const { data: signatures } = useAsync<Record<string, string>>(
     async () =>
       postIds
@@ -455,8 +456,8 @@ export function Thread() {
                               : t('post.lastEdit', { when: formatWhen(post.editTime) })}
                           </p>
                         )}
-                        {signatures?.[post.id] && (
-                          <div className="mt-3 pt-2 border-t border-line text-xs text-ink-dim">
+                        {showSignatures && signatures?.[post.id] && (
+                          <div className="post-signature mt-3 pt-2 border-t border-line text-ink-dim">
                             <PostContent
                               content={signatures[post.id]}
                               showMedia={showMedia}

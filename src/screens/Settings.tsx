@@ -155,6 +155,12 @@ export function Settings() {
               onChange={(v) => updateSettings({ showMedia: v })}
             />
           </Row>
+          <Row label={t('settings.showSignatures')} hint={t('settings.showSignaturesHint')}>
+            <Toggle
+              on={settings.showSignatures !== false}
+              onChange={(v) => updateSettings({ showSignatures: v })}
+            />
+          </Row>
           <Row label={t('settings.readingScale')} hint={t('settings.readingScaleHint')}>
             <div className="flex items-center gap-2 shrink-0">
               <input

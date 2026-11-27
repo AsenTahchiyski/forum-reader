@@ -33,6 +33,8 @@ export interface Settings {
   relayToken: string;
   /** Render images / YouTube embeds inline in posts. */
   showMedia: boolean;
+  /** Show authors' signatures under posts (unset = on). */
+  showSignatures?: boolean;
   /** Multiplier for post/reading text size (1 = default). */
   readingScale?: number;
   /** UI language; unset means "follow the browser". */
